@@ -1,0 +1,200 @@
+// Prisma schema for the trackmysugar clinic dashboard.
+// See /docs/HIPAA.md for the compliance rationale behind the audit/session/encryption models.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StaffRole {
+  ADMIN
+  CLINICIAN
+}
+
+enum DiabetesType {
+  TYPE_1
+  TYPE_2
+}
+
+enum DexcomEnvironment {
+  SANDBOX
+  PRODUCTION
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACTIVE
+  ERROR
+  REVOKED
+}
+
+enum SyncRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum EgvTrend {
+  NONE
+  DOUBLE_UP
+  SINGLE_UP
+  FORTY_FIVE_UP
+  FLAT
+  FORTY_FIVE_DOWN
+  SINGLE_DOWN
+  DOUBLE_DOWN
+  NOT_COMPUTABLE
+  RATE_OUT_OF_RANGE
+}
+
+model StaffUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         StaffRole @default(CLINICIAN)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions   Session[]
+  auditLogs  AuditLog[]
+
+  @@map("staff_users")
+}
+
+model Session {
+  id            String   @id @default(cuid())
+  staffUserId   String
+  staffUser     StaffUser @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+  tokenHash     String    @unique
+  createdAt     DateTime  @default(now())
+  lastActiveAt  DateTime  @default(now())
+  expiresAt     DateTime
+  ipAddress     String?
+  userAgent     String?
+  revokedAt     DateTime?
+
+  @@index([staffUserId])
+  @@map("sessions")
+}
+
+model Patient {
+  id           String       @id @default(cuid())
+  mrn          String       @unique
+  firstName    String
+  lastName     String
+  dateOfBirth  DateTime     @db.Date
+  diabetesType DiabetesType
+  active       Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  dexcomConnection DexcomConnection?
+  glucoseReadings  GlucoseReading[]
+  syncDays         SyncDay[]
+  auditLogs        AuditLog[]
+
+  @@map("patients")
+}
+
+model DexcomConnection {
+  id     String @id @default(cuid())
+  patientId String  @unique
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  environment DexcomEnvironment @default(SANDBOX)
+  status      ConnectionStatus  @default(PENDING)
+
+  encryptedAccessToken  String?
+  encryptedRefreshToken String?
+  accessTokenExpiresAt  DateTime?
+  scope                 String?
+
+  lastSyncAttemptAt DateTime?
+  lastSyncSuccessAt DateTime?
+  lastError         String?
+
+  connectedAt DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("dexcom_connections")
+}
+
+model GlucoseReading {
+  id        String   @id @default(cuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  systemTime  DateTime
+  displayTime DateTime
+  value       Int
+  unit        String   @default("mg/dL")
+  trend       EgvTrend @default(NONE)
+  trendRate   Float?
+
+  createdAt DateTime @default(now())
+
+  @@unique([patientId, systemTime])
+  @@index([patientId, displayTime])
+  @@map("glucose_readings")
+}
+
+// One row per patient per calendar day; the source of truth for the
+// "days with data transmitted" ticker on the patient page.
+model SyncDay {
+  id        String   @id @default(cuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  date         DateTime @db.Date
+  hasData      Boolean  @default(false)
+  readingCount Int      @default(0)
+  syncedAt     DateTime @default(now())
+
+  @@unique([patientId, date])
+  @@index([patientId, date])
+  @@map("sync_days")
+}
+
+// One row per execution of the daily sync job (across all patients).
+model SyncRun {
+  id        String        @id @default(cuid())
+  startedAt DateTime      @default(now())
+  finishedAt DateTime?
+  status    SyncRunStatus @default(RUNNING)
+
+  patientsProcessed Int @default(0)
+  patientsSucceeded Int @default(0)
+  patientsFailed    Int @default(0)
+
+  errorSummary String?
+
+  @@map("sync_runs")
+}
+
+// HIPAA-minded access log: who looked at (or acted on) which patient, when.
+model AuditLog {
+  id          String    @id @default(cuid())
+  staffUserId String?
+  staffUser   StaffUser? @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
+  patientId   String?
+  patient     Patient?   @relation(fields: [patientId], references: [id], onDelete: SetNull)
+
+  action    String
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([staffUserId])
+  @@index([patientId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
