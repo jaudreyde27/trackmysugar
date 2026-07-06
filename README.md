@@ -2,10 +2,13 @@
 
 A dashboard for a single endocrinology practice to track patients' Type 1 and
 Type 2 diabetes data pulled from Dexcom Clarity (LibreView planned as a future
-data source). Staff sign in, see every patient's core glucose stats on one
-screen, and drill into an individual patient for full detail plus a streak
-ticker counting consecutive days with data successfully transmitted from
-their CGM.
+data source). Staff sign in and see, per patient: primary ICD-10 diagnosis,
+CGM/insulin-delivery devices, an "R30" count (days with data transmitted in
+the last 30), a time-in-range breakdown, average glucose, last sync, and last
+CDCES touchpoint. Drilling into a patient adds a full detail view plus a
+streak ticker (consecutive days with data transmitted) and a CDCES call
+workflow — initiate a call, get AI-assisted (or rule-based) talking points,
+take live notes, and log the touchpoint.
 
 This processes protected health information (PHI). Read [`docs/HIPAA.md`](docs/HIPAA.md)
 before deploying anywhere near real patient data — this codebase gives you
@@ -38,6 +41,9 @@ policies, workforce training) that no codebase can provide on its own.
      (fake test patients) is available immediately after registering; real
      patient data requires Dexcom to approve a production API partnership.
    - `DEXCOM_ENVIRONMENT` — `sandbox` or `production`.
+   - `ANTHROPIC_API_KEY` — optional. Powers AI-generated CDCES call talking
+     points. Leave blank to use the built-in deterministic rule-based summary
+     instead — the call workflow works either way.
 
 3. **Install, migrate, seed:**
 
@@ -83,15 +89,43 @@ records whether that day had data. The per-patient "streak" ticker shown on
 the dashboard is the count of consecutive days (walking back from yesterday)
 with data successfully transmitted — a single missed or failed day resets it.
 
+## R30 vs. streak
+
+Two related but distinct metrics show up in the UI:
+
+- **Streak** (patient page): consecutive days, walking back from yesterday,
+  with data transmitted. A single missed day resets it to zero.
+- **R30** (dashboard + patient page): count of days with data transmitted out
+  of the last 30 — not necessarily consecutive. Mirrors the "at least 16 of
+  30 days" threshold common in CGM remote-monitoring billing (a reasonable
+  default, not a hard rule — see `R30_ATTENTION_THRESHOLD` in
+  `src/app/page.tsx`).
+
+## CDCES call workflow
+
+From a patient's page, "Start CDCES call" opens `/patients/[id]/call`:
+
+1. **Initiate call** creates a `CdcesCallSession` row (captures the start
+   time) and generates key talking points from the patient's current stats —
+   via the Anthropic API if `ANTHROPIC_API_KEY` is set, otherwise a
+   deterministic rule-based summary (`src/lib/ai/talking-points.ts`).
+2. A live notes textarea autosaves as the CDCES types (debounced, plus
+   on-blur).
+3. **End call** records the end time. The dashboard's "Last CDCES touchpoint"
+   column reads the most recent session's end (or start, if still in
+   progress).
+
 ## Project layout
 
 ```
 prisma/schema.prisma       Data model (patients, staff, sessions, Dexcom
-                            connections, glucose readings, sync days, audit log)
+                            connections, glucose readings, sync days, CDCES
+                            call sessions, audit log)
 src/lib/auth/               Password hashing, DB-backed sessions, login DAL
 src/lib/dexcom/              Dexcom OAuth2 client, token refresh, EGV fetch
-src/lib/sync/                Daily sync job + streak calculation
+src/lib/sync/                Daily sync job + streak/R30 calculation
 src/lib/data/                Read-side data-access layer (roster & patient DTOs)
+src/lib/ai/                  CDCES call talking-points generation (AI + fallback)
 src/lib/crypto.ts            AES-256-GCM helper for encrypting tokens at rest
 src/lib/audit.ts             HIPAA-style access logging
 src/app/                     Pages, Server Actions, and API routes

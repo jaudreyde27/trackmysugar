@@ -2,16 +2,14 @@ import Link from "next/link";
 import { verifySession } from "@/lib/auth/dal";
 import { getPatientRoster } from "@/lib/data/roster";
 import { TopNav } from "@/components/top-nav";
-import { ConnectionStatusBadge } from "@/components/connection-status-badge";
-import { StreakTicker } from "@/components/streak-ticker";
-import { TimeInRangeBar } from "@/components/time-in-range-bar";
+import { DeviceBadges } from "@/components/device-badges";
+import { R30Badge } from "@/components/r30-badge";
+import { TimeInRangeBreakdown } from "@/components/time-in-range-breakdown";
 
-function diabetesTypeLabel(type: "TYPE_1" | "TYPE_2") {
-  return type === "TYPE_1" ? "Type 1" : "Type 2";
-}
+const R30_ATTENTION_THRESHOLD = 16;
 
-function formatRelative(date: Date | null): string {
-  if (!date) return "Never";
+function formatRelative(date: Date | null): string | null {
+  if (!date) return null;
   const diffMs = Date.now() - date.getTime();
   const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
   if (days <= 0) return "Today";
@@ -19,12 +17,23 @@ function formatRelative(date: Date | null): string {
   return `${days} days ago`;
 }
 
+function formatExactDate(date: Date | null): string {
+  if (!date) return "";
+  return new Date(date).toLocaleString([], {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default async function HomePage() {
   const session = await verifySession();
   const roster = await getPatientRoster();
 
   const needsAttention = roster.filter(
-    (p) => p.connectionState === "ERROR" || p.streak === 0
+    (p) => p.connectionState === "ERROR" || p.r30Count < R30_ATTENTION_THRESHOLD
   ).length;
   const connected = roster.filter((p) => p.connectionState === "ACTIVE").length;
   const withData = roster.filter((p) => p.stats.readingCount > 0);
@@ -36,7 +45,7 @@ export default async function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <TopNav staffName={session.staffUser.name} />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">
         <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
           Practice overview
         </h1>
@@ -56,25 +65,22 @@ export default async function HomePage() {
         </div>
 
         <div className="mt-8 overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
-          <table className="w-full min-w-[860px] text-left text-sm">
+          <table className="w-full min-w-[1100px] text-left text-sm">
             <thead className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
               <tr>
                 <th className="px-4 py-3 font-medium">Patient</th>
-                <th className="px-4 py-3 font-medium">Type</th>
-                <th className="px-4 py-3 font-medium">Streak</th>
-                <th className="px-4 py-3 font-medium">Avg glucose (14d)</th>
-                <th className="px-4 py-3 font-medium">GMI</th>
+                <th className="px-4 py-3 font-medium">Diagnosis</th>
+                <th className="px-4 py-3 font-medium">Sensors</th>
+                <th className="px-4 py-3 font-medium">R30</th>
                 <th className="px-4 py-3 font-medium">Time in range</th>
-                <th className="px-4 py-3 font-medium">Dexcom</th>
+                <th className="px-4 py-3 font-medium">Avg glucose (14d)</th>
                 <th className="px-4 py-3 font-medium">Last sync</th>
+                <th className="px-4 py-3 font-medium">Last CDCES touchpoint</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
               {roster.map((patient) => (
-                <tr
-                  key={patient.id}
-                  className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50"
-                >
+                <tr key={patient.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
                   <td className="px-4 py-3">
                     <Link
                       href={`/patients/${patient.id}`}
@@ -86,28 +92,48 @@ export default async function HomePage() {
                       {patient.mrn}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-neutral-700 dark:text-neutral-300">
-                    {diabetesTypeLabel(patient.diabetesType)}
+                  <td className="px-4 py-3 font-mono text-xs text-neutral-700 dark:text-neutral-300">
+                    {patient.primaryDiagnosisCode}
                   </td>
                   <td className="px-4 py-3">
-                    <StreakTicker streak={patient.streak} size="sm" />
+                    <DeviceBadges
+                      cgmDevice={patient.cgmDevice}
+                      insulinDeliveryDevice={patient.insulinDeliveryDevice}
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <R30Badge count={patient.r30Count} />
+                  </td>
+                  <td className="w-56 px-4 py-3">
+                    <TimeInRangeBreakdown stats={patient.stats} />
                   </td>
                   <td className="px-4 py-3 tabular-nums text-neutral-700 dark:text-neutral-300">
                     {patient.stats.averageGlucose != null
                       ? `${patient.stats.averageGlucose.toFixed(0)} mg/dL`
                       : "—"}
                   </td>
-                  <td className="px-4 py-3 tabular-nums text-neutral-700 dark:text-neutral-300">
-                    {patient.stats.gmi != null ? `${patient.stats.gmi.toFixed(1)}%` : "—"}
-                  </td>
-                  <td className="w-40 px-4 py-3">
-                    <TimeInRangeBar stats={patient.stats} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <ConnectionStatusBadge state={patient.connectionState} />
+                  <td className="px-4 py-3 text-neutral-500 dark:text-neutral-400">
+                    {patient.connectionState === "NOT_CONNECTED" ||
+                    patient.connectionState === "REVOKED" ? (
+                      <span>Not connected</span>
+                    ) : (
+                      <span
+                        title={formatExactDate(patient.lastSyncSuccessAt)}
+                        className={
+                          patient.connectionState === "ERROR"
+                            ? "text-[color:var(--status-critical)]"
+                            : undefined
+                        }
+                      >
+                        {formatRelative(patient.lastSyncSuccessAt) ?? "Never"}
+                        {patient.connectionState === "ERROR" && " ⚠"}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-neutral-500 dark:text-neutral-400">
-                    {formatRelative(patient.lastSyncSuccessAt)}
+                    <span title={formatExactDate(patient.lastCdcesTouchpointAt)}>
+                      {formatRelative(patient.lastCdcesTouchpointAt) ?? "None logged"}
+                    </span>
                   </td>
                 </tr>
               ))}

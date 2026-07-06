@@ -58,37 +58,46 @@ None of the following can be satisfied by code alone:
    production API access (beyond sandbox), confirm what data protection /
    BAA terms Dexcom offers for your use case. Sandbox data is fake, so this
    only matters once you move to `DEXCOM_ENVIRONMENT=production`.
-3. **Centralized secrets management.** `.env` files are fine for local dev;
-   in staging/production, `APP_ENCRYPTION_KEY`, `DEXCOM_CLIENT_SECRET`, and
-   `CRON_SECRET` belong in your platform's secrets manager, not in a file on
-   disk. Losing `APP_ENCRYPTION_KEY` makes every stored Dexcom token
-   unrecoverable — back it up somewhere separate from the database.
-4. **TLS termination + HSTS** at your load balancer/reverse proxy/platform
+3. **A BAA with Anthropic before enabling `ANTHROPIC_API_KEY` with real
+   patient data.** Setting that key makes the CDCES call workflow send a
+   summary of the patient's diagnosis, devices, and glucose stats to the
+   Anthropic API to generate talking points (`src/lib/ai/talking-points.ts`)
+   — that's a PHI disclosure to a third party like any other, and needs the
+   same BAA treatment as your hosting provider before it touches real
+   patients. Leaving the key unset uses the built-in rule-based fallback
+   instead, with no external call at all.
+4. **Centralized secrets management.** `.env` files are fine for local dev;
+   in staging/production, `APP_ENCRYPTION_KEY`, `DEXCOM_CLIENT_SECRET`,
+   `ANTHROPIC_API_KEY`, and `CRON_SECRET` belong in your platform's secrets
+   manager, not in a file on disk. Losing `APP_ENCRYPTION_KEY` makes every
+   stored Dexcom token unrecoverable — back it up somewhere separate from
+   the database.
+5. **TLS termination + HSTS** at your load balancer/reverse proxy/platform
    (Vercel, an ALB, Caddy, etc.) — this app doesn't terminate TLS itself.
-5. **Backups**: encrypted, access-controlled, and with a periodically tested
+6. **Backups**: encrypted, access-controlled, and with a periodically tested
    restore procedure.
-6. **A shared rate-limit store** (e.g. Redis) if you ever run more than one
+7. **A shared rate-limit store** (e.g. Redis) if you ever run more than one
    app instance — the built-in limiter is per-process and won't coordinate
    across instances.
-7. **Multi-factor authentication for staff logins.** This MVP only does
+8. **Multi-factor authentication for staff logins.** This MVP only does
    password auth. Add MFA before treating this as production-ready — a
    dedicated auth provider (see the list in
    `node_modules/next/dist/docs/01-app/02-guides/authentication.md`) is the
    fastest way to get there.
-8. **Organizational controls**: a written security/privacy policy, workforce
+9. **Organizational controls**: a written security/privacy policy, workforce
    HIPAA training, a designated privacy/security officer, an access-review
    cadence (who can see the audit log and how often it's reviewed), a
    breach-notification procedure, and a sanctions policy for misuse — all
    required by the Security Rule's administrative safeguards, none of which
    live in a repository.
-9. **A security review / penetration test** before go-live, and periodically
-   afterward — see the `security-review` skill in this environment as a
-   starting point, but a from-scratch clinical app handling PHI warrants an
-   independent third-party review too.
-10. **Data retention and disposal policy**: decide how long glucose readings,
-    audit logs, and revoked-connection records are retained, and implement
-    the deletion job — this codebase does not currently expire or purge
-    anything automatically.
+10. **A security review / penetration test** before go-live, and periodically
+    afterward — see the `security-review` skill in this environment as a
+    starting point, but a from-scratch clinical app handling PHI warrants an
+    independent third-party review too.
+11. **Data retention and disposal policy**: decide how long glucose readings,
+    audit logs, revoked-connection records, and CDCES call notes are
+    retained, and implement the deletion job — this codebase does not
+    currently expire or purge anything automatically.
 
 ## Data minimization
 

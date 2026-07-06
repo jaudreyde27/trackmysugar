@@ -9,6 +9,8 @@ import { StreakCalendar } from "@/components/streak-calendar";
 import { ConnectionStatusBadge } from "@/components/connection-status-badge";
 import { TimeInRangeBar } from "@/components/time-in-range-bar";
 import { GlucoseTrendChart } from "@/components/glucose-trend-chart";
+import { DeviceBadges } from "@/components/device-badges";
+import { R30Badge } from "@/components/r30-badge";
 import { disconnectDexcom } from "@/app/actions/dexcom";
 
 function diabetesTypeLabel(type: "TYPE_1" | "TYPE_2") {
@@ -66,14 +68,29 @@ export default async function PatientDetailPage({
             </h1>
             <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
               MRN {patient.mrn} · DOB {formatDate(patient.dateOfBirth)} ·{" "}
-              {diabetesTypeLabel(patient.diabetesType)}
+              {diabetesTypeLabel(patient.diabetesType)} ·{" "}
+              <span className="font-mono">{patient.primaryDiagnosisCode}</span>
             </p>
-          </div>
-          <div className="text-right">
-            <div className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-              Current streak
+            <div className="mt-2">
+              <DeviceBadges
+                cgmDevice={patient.cgmDevice}
+                insulinDeliveryDevice={patient.insulinDeliveryDevice}
+              />
             </div>
-            <StreakTicker streak={patient.streak} size="lg" />
+          </div>
+          <div className="flex gap-6 text-right">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                R30
+              </div>
+              <R30Badge count={patient.r30Count} />
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                Current streak
+              </div>
+              <StreakTicker streak={patient.streak} size="lg" />
+            </div>
           </div>
         </div>
 
@@ -120,6 +137,25 @@ export default async function PatientDetailPage({
                 {patient.connectionState === "ERROR" ? "Reconnect to Dexcom" : "Connect to Dexcom"}
               </a>
             )}
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                CDCES touchpoints
+              </div>
+              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                Last touchpoint: {formatDateTime(patient.lastCdcesTouchpointAt)}
+              </p>
+            </div>
+            <Link
+              href={`/patients/${patient.id}/call`}
+              className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+            >
+              Start CDCES call
+            </Link>
           </div>
         </section>
 

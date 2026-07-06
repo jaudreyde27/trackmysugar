@@ -21,6 +21,18 @@ enum DiabetesType {
   TYPE_2
 }
 
+enum CgmDevice {
+  DEXCOM
+  FREESTYLE_LIBRE
+}
+
+enum InsulinDeliveryDevice {
+  OMNIPOD
+  TANDEM
+  MEDTRONIC
+  MDI
+}
+
 enum DexcomEnvironment {
   SANDBOX
   PRODUCTION
@@ -62,8 +74,9 @@ model StaffUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  sessions   Session[]
-  auditLogs  AuditLog[]
+  sessions          Session[]
+  auditLogs         AuditLog[]
+  cdcesCallSessions CdcesCallSession[]
 
   @@map("staff_users")
 }
@@ -95,10 +108,16 @@ model Patient {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
-  dexcomConnection DexcomConnection?
-  glucoseReadings  GlucoseReading[]
-  syncDays         SyncDay[]
-  auditLogs        AuditLog[]
+  // Primary ICD-10 diagnosis code, e.g. "E10.9" (Type 1) or "E11.9" (Type 2).
+  primaryDiagnosisCode  String
+  cgmDevice             CgmDevice?
+  insulinDeliveryDevice InsulinDeliveryDevice?
+
+  dexcomConnection  DexcomConnection?
+  glucoseReadings   GlucoseReading[]
+  syncDays          SyncDay[]
+  auditLogs         AuditLog[]
+  cdcesCallSessions CdcesCallSession[]
 
   @@map("patients")
 }
@@ -178,6 +197,32 @@ model SyncRun {
   errorSummary String?
 
   @@map("sync_runs")
+}
+
+// A single CDCES (Certified Diabetes Care and Education Specialist) call with
+// a patient: start/end time, live notes, and the talking points shown to the
+// CDCES when the call began. This is the source of the "Last CDCES
+// touchpoint" date on the dashboard (most recent endedAt, or startedAt while
+// a call is still in progress).
+model CdcesCallSession {
+  id          String    @id @default(cuid())
+  patientId   String
+  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  staffUserId String
+  staffUser   StaffUser @relation(fields: [staffUserId], references: [id])
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  notes     String    @default("")
+
+  // Snapshot of the AI-generated (or rule-based fallback) talking points
+  // shown at call start; not regenerated as patient data changes mid-call.
+  talkingPoints String?
+
+  createdAt DateTime @default(now())
+
+  @@index([patientId, startedAt])
+  @@map("cdces_call_sessions")
 }
 
 // HIPAA-minded access log: who looked at (or acted on) which patient, when.
