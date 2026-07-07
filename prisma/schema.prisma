@@ -33,6 +33,24 @@ enum InsulinDeliveryDevice {
   MDI
 }
 
+enum PhoneType {
+  MOBILE
+  HOME
+  WORK
+}
+
+enum InsuranceRank {
+  PRIMARY
+  SECONDARY
+}
+
+enum SubscriberRelationship {
+  SELF
+  SPOUSE
+  CHILD
+  OTHER
+}
+
 enum DexcomEnvironment {
   SANDBOX
   PRODUCTION
@@ -117,14 +135,53 @@ model Patient {
   cgmDevice             CgmDevice?
   insulinDeliveryDevice InsulinDeliveryDevice?
 
+  // Contact info
+  email              String?
+  phoneMobile        String?
+  phoneHome          String?
+  phoneWork          String?
+  preferredPhoneType PhoneType?
+  addressLine1       String?
+  addressLine2       String?
+  city               String?
+  state              String?
+  postalCode         String?
+
   dexcomConnection  DexcomConnection?
   glucoseReadings   GlucoseReading[]
   syncDays          SyncDay[]
   auditLogs         AuditLog[]
   cdcesCallSessions CdcesCallSession[]
   medications       Medication[]
+  insurancePolicies InsurancePolicy[]
 
   @@map("patients")
+}
+
+// Read-only for now, like Medication — captures what's needed to file a
+// claim (payer, member/group IDs, subscriber) without collecting SSN, which
+// isn't required for billing in the vast majority of modern payer workflows.
+model InsurancePolicy {
+  id        String        @id @default(cuid())
+  patientId String
+  patient   Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  rank      InsuranceRank
+
+  payerName    String
+  memberId     String
+  groupNumber  String?
+  planType     String?
+
+  subscriberName         String?
+  subscriberRelationship SubscriberRelationship @default(SELF)
+  effectiveDate          DateTime?              @db.Date
+
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([patientId, rank])
+  @@map("insurance_policies")
 }
 
 // Read-only for now (see docs) — a staff-facing add/edit workflow can follow

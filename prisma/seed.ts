@@ -9,6 +9,9 @@ import {
   CgmDevice,
   InsulinDeliveryDevice,
   EgvTrend,
+  PhoneType,
+  InsuranceRank,
+  SubscriberRelationship,
 } from "../src/generated/prisma/client";
 import { hash } from "bcryptjs";
 
@@ -23,6 +26,28 @@ type GlucoseProfile = {
 
 type SeedMedication = { name: string; dosage: string; frequency: string };
 
+type SeedContact = {
+  email: string;
+  phoneMobile?: string;
+  phoneHome?: string;
+  phoneWork?: string;
+  preferredPhoneType: PhoneType;
+  addressLine1: string;
+  city: string;
+  state: string;
+  postalCode: string;
+};
+
+type SeedInsurance = {
+  rank: InsuranceRank;
+  payerName: string;
+  memberId: string;
+  groupNumber?: string;
+  planType?: string;
+  subscriberRelationship: SubscriberRelationship;
+  subscriberName?: string;
+};
+
 type SeedPatient = {
   mrn: string;
   firstName: string;
@@ -35,6 +60,8 @@ type SeedPatient = {
   insulinDeliveryDevice: InsulinDeliveryDevice | null;
   profile: GlucoseProfile | null;
   medications: SeedMedication[];
+  contact: SeedContact;
+  insurance: SeedInsurance[];
 };
 
 const PATIENTS: SeedPatient[] = [
@@ -50,6 +77,26 @@ const PATIENTS: SeedPatient[] = [
     insulinDeliveryDevice: "OMNIPOD",
     profile: { mean: 135, stdDev: 25, syncedDaysOutOf30: 30 },
     medications: [{ name: "Insulin Aspart", dosage: "Per pump settings", frequency: "Via Omnipod" }],
+    contact: {
+      email: "ava.thompson@example.com",
+      phoneMobile: "(555) 201-4471",
+      phoneHome: "(555) 201-9002",
+      preferredPhoneType: "MOBILE",
+      addressLine1: "412 Willowbrook Ln",
+      city: "Springfield",
+      state: "IL",
+      postalCode: "62701",
+    },
+    insurance: [
+      {
+        rank: "PRIMARY",
+        payerName: "Blue Cross Blue Shield",
+        memberId: "BCB847213609",
+        groupNumber: "GRP-55210",
+        planType: "PPO",
+        subscriberRelationship: "SELF",
+      },
+    ],
   },
   {
     mrn: "MRN-0002",
@@ -67,6 +114,33 @@ const PATIENTS: SeedPatient[] = [
       { name: "Metformin", dosage: "1000 mg", frequency: "Twice daily" },
       { name: "Atorvastatin", dosage: "20 mg", frequency: "Once daily" },
     ],
+    contact: {
+      email: "miguel.santos@example.com",
+      phoneMobile: "(555) 340-8827",
+      phoneWork: "(555) 340-1100",
+      preferredPhoneType: "MOBILE",
+      addressLine1: "88 Cedar Grove Ave",
+      city: "Riverside",
+      state: "CA",
+      postalCode: "92501",
+    },
+    insurance: [
+      {
+        rank: "PRIMARY",
+        payerName: "UnitedHealthcare",
+        memberId: "UHC220984417",
+        groupNumber: "GRP-90142",
+        planType: "HMO",
+        subscriberRelationship: "SELF",
+      },
+      {
+        rank: "SECONDARY",
+        payerName: "Medicare",
+        memberId: "1EG4-TE5-MK72",
+        planType: "Part B",
+        subscriberRelationship: "SELF",
+      },
+    ],
   },
   {
     mrn: "MRN-0003",
@@ -82,6 +156,26 @@ const PATIENTS: SeedPatient[] = [
     medications: [
       { name: "Insulin Lispro", dosage: "Per pump settings", frequency: "Via Tandem t:slim X2" },
       { name: "Levothyroxine", dosage: "50 mcg", frequency: "Once daily" },
+    ],
+    contact: {
+      email: "priya.nair@example.com",
+      phoneMobile: "(555) 118-3390",
+      preferredPhoneType: "MOBILE",
+      addressLine1: "27 Elmhurst Ct, Apt 4B",
+      city: "Austin",
+      state: "TX",
+      postalCode: "78701",
+    },
+    insurance: [
+      {
+        rank: "PRIMARY",
+        payerName: "Aetna",
+        memberId: "AET009834471",
+        groupNumber: "GRP-30877",
+        planType: "PPO",
+        subscriberRelationship: "CHILD",
+        subscriberName: "Anjali Nair",
+      },
     ],
   },
   {
@@ -99,6 +193,26 @@ const PATIENTS: SeedPatient[] = [
       { name: "Metformin", dosage: "500 mg", frequency: "Twice daily" },
       { name: "Semaglutide", dosage: "1 mg", frequency: "Once weekly (injection)" },
       { name: "Lisinopril", dosage: "10 mg", frequency: "Once daily" },
+    ],
+    contact: {
+      email: "daniel.okafor@example.com",
+      phoneMobile: "(555) 402-7765",
+      phoneHome: "(555) 402-1190",
+      preferredPhoneType: "HOME",
+      addressLine1: "1503 Maple Terrace",
+      city: "Columbus",
+      state: "OH",
+      postalCode: "43215",
+    },
+    insurance: [
+      {
+        rank: "PRIMARY",
+        payerName: "Cigna",
+        memberId: "CIG774213098",
+        groupNumber: "GRP-11934",
+        planType: "HDHP",
+        subscriberRelationship: "SELF",
+      },
     ],
   },
 ];
@@ -185,6 +299,15 @@ async function main() {
         cgmDevice: p.cgmDevice,
         insulinDeliveryDevice: p.insulinDeliveryDevice,
         enrolledAt: new Date(p.enrolledAt),
+        email: p.contact.email,
+        phoneMobile: p.contact.phoneMobile,
+        phoneHome: p.contact.phoneHome,
+        phoneWork: p.contact.phoneWork,
+        preferredPhoneType: p.contact.preferredPhoneType,
+        addressLine1: p.contact.addressLine1,
+        city: p.contact.city,
+        state: p.contact.state,
+        postalCode: p.contact.postalCode,
       },
       create: {
         mrn: p.mrn,
@@ -196,6 +319,15 @@ async function main() {
         primaryDiagnosisCode: p.diagnosisCode,
         cgmDevice: p.cgmDevice,
         insulinDeliveryDevice: p.insulinDeliveryDevice,
+        email: p.contact.email,
+        phoneMobile: p.contact.phoneMobile,
+        phoneHome: p.contact.phoneHome,
+        phoneWork: p.contact.phoneWork,
+        preferredPhoneType: p.contact.preferredPhoneType,
+        addressLine1: p.contact.addressLine1,
+        city: p.contact.city,
+        state: p.contact.state,
+        postalCode: p.contact.postalCode,
       },
     });
 
@@ -212,6 +344,30 @@ async function main() {
           dosage: m.dosage,
           frequency: m.frequency,
         })),
+      });
+    }
+
+    for (const ins of p.insurance) {
+      await prisma.insurancePolicy.upsert({
+        where: { patientId_rank: { patientId: patient.id, rank: ins.rank } },
+        update: {
+          payerName: ins.payerName,
+          memberId: ins.memberId,
+          groupNumber: ins.groupNumber,
+          planType: ins.planType,
+          subscriberRelationship: ins.subscriberRelationship,
+          subscriberName: ins.subscriberName,
+        },
+        create: {
+          patientId: patient.id,
+          rank: ins.rank,
+          payerName: ins.payerName,
+          memberId: ins.memberId,
+          groupNumber: ins.groupNumber,
+          planType: ins.planType,
+          subscriberRelationship: ins.subscriberRelationship,
+          subscriberName: ins.subscriberName,
+        },
       });
     }
   }

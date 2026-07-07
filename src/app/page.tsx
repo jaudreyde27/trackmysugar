@@ -6,6 +6,7 @@ import { DeviceBadges } from "@/components/device-badges";
 import { DiagnosisDisplay } from "@/components/diagnosis-display";
 import { R30Badge } from "@/components/r30-badge";
 import { TimeInRangeBreakdown } from "@/components/time-in-range-breakdown";
+import { GriZoneBadge } from "@/components/gri-zone-badge";
 
 function formatRelative(date: Date | null): string | null {
   if (!date) return null;
@@ -36,6 +37,17 @@ function formatShortDate(date: Date | null): string | null {
   });
 }
 
+function calculateAge(dateOfBirth: Date): number {
+  const today = new Date();
+  const dob = new Date(dateOfBirth);
+  let age = today.getFullYear() - dob.getFullYear();
+  const hasHadBirthdayThisYear =
+    today.getMonth() > dob.getMonth() ||
+    (today.getMonth() === dob.getMonth() && today.getDate() >= dob.getDate());
+  if (!hasHadBirthdayThisYear) age -= 1;
+  return age;
+}
+
 export default async function HomePage() {
   const session = await verifySession();
   const roster = await getPatientRoster();
@@ -57,6 +69,7 @@ export default async function HomePage() {
                 <th className="px-4 py-3 font-medium">Sensors</th>
                 <th className="px-4 py-3 font-medium">R30</th>
                 <th className="px-4 py-3 font-medium">Time in range</th>
+                <th className="px-4 py-3 font-medium">Glycemia risk zone</th>
                 <th className="px-4 py-3 font-medium">Avg glucose (14d)</th>
                 <th className="px-4 py-3 font-medium">Last sync</th>
                 <th className="px-4 py-3 font-medium">Enrolled</th>
@@ -73,6 +86,9 @@ export default async function HomePage() {
                     >
                       {patient.lastName}, {patient.firstName}
                     </Link>
+                    <span className="ml-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+                      {calculateAge(patient.dateOfBirth)}
+                    </span>
                     <div className="text-xs text-neutral-500 dark:text-neutral-400">
                       {patient.mrn}
                     </div>
@@ -91,6 +107,9 @@ export default async function HomePage() {
                   </td>
                   <td className="w-56 px-4 py-3">
                     <TimeInRangeBreakdown stats={patient.stats} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <GriZoneBadge score={patient.griScore} />
                   </td>
                   <td className="px-4 py-3 tabular-nums text-neutral-700 dark:text-neutral-300">
                     {patient.stats.averageGlucose != null
@@ -127,7 +146,7 @@ export default async function HomePage() {
               ))}
               {roster.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-neutral-500">
+                  <td colSpan={10} className="px-4 py-8 text-center text-neutral-500">
                     No patients yet.
                   </td>
                 </tr>

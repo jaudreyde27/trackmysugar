@@ -13,6 +13,9 @@ import { DiagnosisDisplay } from "@/components/diagnosis-display";
 import { DaysTransmittedCounter } from "@/components/days-transmitted-counter";
 import { PumpPlaceholder } from "@/components/pump-placeholder";
 import { MedicationsList } from "@/components/medications-list";
+import { ContactInfoCard } from "@/components/contact-info-card";
+import { InsuranceCard } from "@/components/insurance-card";
+import { NotesLogSummary } from "@/components/notes-log-summary";
 import { disconnectDexcom } from "@/app/actions/dexcom";
 
 function diabetesTypeLabel(type: "TYPE_1" | "TYPE_2") {
@@ -83,6 +86,22 @@ export default async function PatientDetailPage({
           </div>
         )}
 
+        <section className="mt-6">
+          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+            Contact information
+          </h2>
+          <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+            <ContactInfoCard contact={patient.contact} />
+          </div>
+        </section>
+
+        <section className="mt-6">
+          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Insurance</h2>
+          <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+            <InsuranceCard policies={patient.insurancePolicies} />
+          </div>
+        </section>
+
         <section className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -139,6 +158,13 @@ export default async function PatientDetailPage({
             >
               Start CDCES call
             </Link>
+          </div>
+        </section>
+
+        <section className="mt-6">
+          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Notes log</h2>
+          <div className="mt-2">
+            <NotesLogSummary sessions={patient.recentCallSessions} />
           </div>
         </section>
 

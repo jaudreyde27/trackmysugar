@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getGlucoseStatsForAllPatients, type GlucoseStats } from "@/lib/data/glucose-stats";
 import { getR30CountsForAllPatients } from "@/lib/sync/streak";
 import { getLastTouchpointForAllPatients } from "@/lib/data/cdces";
+import { computeGRI } from "@/lib/gri";
 import type { CgmDevice, InsulinDeliveryDevice } from "@/generated/prisma/client";
 
 export type ConnectionState = "NOT_CONNECTED" | "PENDING" | "ACTIVE" | "ERROR" | "REVOKED";
@@ -12,6 +13,7 @@ export type RosterEntry = {
   mrn: string;
   firstName: string;
   lastName: string;
+  dateOfBirth: Date;
   primaryDiagnosisCode: string;
   cgmDevice: CgmDevice | null;
   insulinDeliveryDevice: InsulinDeliveryDevice | null;
@@ -22,6 +24,7 @@ export type RosterEntry = {
   enrolledAt: Date;
   lastCdcesTouchpointAt: Date | null;
   stats: GlucoseStats;
+  griScore: number | null;
 };
 
 const STATS_WINDOW_DAYS = 14;
@@ -50,20 +53,25 @@ export async function getPatientRoster(): Promise<RosterEntry[]> {
     getLastTouchpointForAllPatients(),
   ]);
 
-  return patients.map((patient) => ({
-    id: patient.id,
-    mrn: patient.mrn,
-    firstName: patient.firstName,
-    lastName: patient.lastName,
-    primaryDiagnosisCode: patient.primaryDiagnosisCode,
-    cgmDevice: patient.cgmDevice,
-    insulinDeliveryDevice: patient.insulinDeliveryDevice,
-    connectionState: (patient.dexcomConnection?.status ?? "NOT_CONNECTED") as ConnectionState,
-    lastSyncSuccessAt: patient.dexcomConnection?.lastSyncSuccessAt ?? null,
-    lastSyncError: patient.dexcomConnection?.lastError ?? null,
-    r30Count: r30Counts.get(patient.id) ?? 0,
-    enrolledAt: patient.enrolledAt,
-    lastCdcesTouchpointAt: lastTouchpoints.get(patient.id) ?? null,
-    stats: statsByPatient.get(patient.id) ?? { patientId: patient.id, ...EMPTY_STATS_TEMPLATE },
-  }));
+  return patients.map((patient) => {
+    const stats = statsByPatient.get(patient.id) ?? { patientId: patient.id, ...EMPTY_STATS_TEMPLATE };
+    return {
+      id: patient.id,
+      mrn: patient.mrn,
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+      dateOfBirth: patient.dateOfBirth,
+      primaryDiagnosisCode: patient.primaryDiagnosisCode,
+      cgmDevice: patient.cgmDevice,
+      insulinDeliveryDevice: patient.insulinDeliveryDevice,
+      connectionState: (patient.dexcomConnection?.status ?? "NOT_CONNECTED") as ConnectionState,
+      lastSyncSuccessAt: patient.dexcomConnection?.lastSyncSuccessAt ?? null,
+      lastSyncError: patient.dexcomConnection?.lastError ?? null,
+      r30Count: r30Counts.get(patient.id) ?? 0,
+      enrolledAt: patient.enrolledAt,
+      lastCdcesTouchpointAt: lastTouchpoints.get(patient.id) ?? null,
+      stats,
+      griScore: computeGRI(stats),
+    };
+  });
 }
