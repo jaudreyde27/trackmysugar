@@ -12,13 +12,12 @@
   --status-neutral: #898781;
 
   /* Categorical palette (device identity, fixed order, never themed by status) */
-  --cat-blue: #2a78d6;
+  --cat-blue: #1c8fe0;
   --cat-aqua: #1baf7a;
-  --cat-green: #008300;
-  --cat-violet: #4a3aa7;
-  --cat-orange: #eb6834;
+  --cat-violet: #7c4fdb;
   --cat-dexcom-green: #3a9e3a;
   --cat-libre-yellow: #f2c230;
+  --cat-medtronic-navy: #0b2d5c;
 
   /* Glycemia Risk Index zone letters, tuned for contrast directly against
      the page background (not inside a colored badge) — see src/lib/gri.ts. */
@@ -47,13 +46,12 @@
     --status-critical: #d03b3b;
     --status-neutral: #898781;
 
-    --cat-blue: #3987e5;
+    --cat-blue: #4da8ed;
     --cat-aqua: #199e70;
-    --cat-green: #008300;
-    --cat-violet: #9085e9;
-    --cat-orange: #d95926;
+    --cat-violet: #9d7fe8;
     --cat-dexcom-green: #4bb44b;
     --cat-libre-yellow: #e0b02a;
+    --cat-medtronic-navy: #1a4a8c;
 
     --gri-zone-a: #34d399;
     --gri-zone-b: #a3e635;

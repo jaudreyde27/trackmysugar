@@ -26,8 +26,8 @@ const CGM_CONFIG: Record<CgmDevice, DeviceConfig> = {
 // has no pump, so it's handled as an absence case rather than a badge.
 const PUMP_CONFIG: Record<Exclude<InsulinDeliveryDevice, "MDI">, DeviceConfig> = {
   OMNIPOD: { label: "Omnipod", Icon: OmnipodIcon, color: "var(--cat-violet)" },
-  TANDEM: { label: "Tandem", Icon: TandemIcon, color: "var(--cat-orange)" },
-  MEDTRONIC: { label: "Medtronic", Icon: MedtronicIcon, color: "var(--cat-green)" },
+  TANDEM: { label: "Tandem", Icon: TandemIcon, color: "var(--cat-blue)" },
+  MEDTRONIC: { label: "Medtronic", Icon: MedtronicIcon, color: "var(--cat-medtronic-navy)" },
 };
 
 function hasPump(device: InsulinDeliveryDevice | null): device is Exclude<InsulinDeliveryDevice, "MDI"> {
