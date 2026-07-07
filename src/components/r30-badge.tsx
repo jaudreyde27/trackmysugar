@@ -1,4 +1,4 @@
-import { R30_WINDOW_DAYS } from "@/lib/sync/streak";
+import { R30_WINDOW_DAYS } from "@/lib/constants";
 
 // 16-of-30-day threshold mirrors the common CGM remote-monitoring billing
 // requirement (e.g. CPT 99454) — not a hard rule, just a reasonable default

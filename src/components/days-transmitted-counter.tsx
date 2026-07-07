@@ -1,4 +1,4 @@
-import { R30_WINDOW_DAYS } from "@/lib/sync/streak";
+import { R30_WINDOW_DAYS } from "@/lib/constants";
 import { r30Color } from "@/components/r30-badge";
 
 export function DaysTransmittedCounter({ count }: { count: number }) {

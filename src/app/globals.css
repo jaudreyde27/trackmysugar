@@ -17,6 +17,16 @@
   --cat-green: #008300;
   --cat-violet: #4a3aa7;
   --cat-orange: #eb6834;
+  --cat-dexcom-green: #3a9e3a;
+  --cat-libre-yellow: #f2c230;
+
+  /* Glycemia Risk Index zone letters, tuned for contrast directly against
+     the page background (not inside a colored badge) — see src/lib/gri.ts. */
+  --gri-zone-a: #15803d;
+  --gri-zone-b: #65a30d;
+  --gri-zone-c: #a16207;
+  --gri-zone-d: #c2410c;
+  --gri-zone-e: #b91c1c;
 }
 
 @theme inline {
@@ -42,6 +52,14 @@
     --cat-green: #008300;
     --cat-violet: #9085e9;
     --cat-orange: #d95926;
+    --cat-dexcom-green: #4bb44b;
+    --cat-libre-yellow: #e0b02a;
+
+    --gri-zone-a: #34d399;
+    --gri-zone-b: #a3e635;
+    --gri-zone-c: #facc15;
+    --gri-zone-d: #fb923c;
+    --gri-zone-e: #f87171;
   }
 }
 

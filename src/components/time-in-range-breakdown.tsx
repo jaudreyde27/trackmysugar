@@ -62,14 +62,14 @@ export function TimeInRangeBreakdown({ stats }: { stats: GlucoseStats }) {
       {SEGMENTS.map((seg) => (
         <div key={seg.abbr} className="flex flex-col items-center gap-1" title={seg.label}>
           <div
-            className={`flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums ${
+            className={`flex h-10 w-10 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums ${
               hasData ? "" : "bg-neutral-200 dark:bg-neutral-800"
             }`}
             style={
               hasData ? { backgroundColor: seg.color, color: seg.textColor } : undefined
             }
           >
-            {hasData ? `${Math.round(Number(stats[seg.key]))}` : ""}
+            {hasData ? `${Math.round(Number(stats[seg.key]))}%` : ""}
           </div>
           <span className="text-[9px] uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
             {seg.abbr}

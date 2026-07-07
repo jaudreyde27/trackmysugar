@@ -31,12 +31,14 @@ export function getGriZone(score: number): GriZone {
   return "E";
 }
 
-export const GRI_ZONE_COLORS: Record<GriZone, { bg: string; text: string }> = {
-  A: { bg: "#1a9850", text: "#ffffff" },
-  B: { bg: "#91cf60", text: "#173d1a" },
-  C: { bg: "#fee08b", text: "#5c4813" },
-  D: { bg: "#fc8d59", text: "#ffffff" },
-  E: { bg: "#99000d", text: "#ffffff" },
+// CSS variable references (see globals.css) so each zone's letter stays
+// legible directly against the page background in both light and dark mode.
+export const GRI_ZONE_LETTER_COLORS: Record<GriZone, string> = {
+  A: "var(--gri-zone-a)",
+  B: "var(--gri-zone-b)",
+  C: "var(--gri-zone-c)",
+  D: "var(--gri-zone-d)",
+  E: "var(--gri-zone-e)",
 };
 
 export const GRI_ZONE_LABELS: Record<GriZone, string> = {

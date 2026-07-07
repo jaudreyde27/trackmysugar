@@ -48,6 +48,14 @@ type SeedInsurance = {
   subscriberName?: string;
 };
 
+type SeedDeviceHistory = {
+  category: "CGM" | "PUMP";
+  cgmDevice?: CgmDevice;
+  insulinDeliveryDevice?: InsulinDeliveryDevice;
+  startedAt: string;
+  endedAt?: string;
+};
+
 type SeedPatient = {
   mrn: string;
   firstName: string;
@@ -62,6 +70,7 @@ type SeedPatient = {
   medications: SeedMedication[];
   contact: SeedContact;
   insurance: SeedInsurance[];
+  deviceHistory: SeedDeviceHistory[];
 };
 
 const PATIENTS: SeedPatient[] = [
@@ -96,6 +105,10 @@ const PATIENTS: SeedPatient[] = [
         planType: "PPO",
         subscriberRelationship: "SELF",
       },
+    ],
+    deviceHistory: [
+      { category: "CGM", cgmDevice: "DEXCOM", startedAt: "2024-02-10" },
+      { category: "PUMP", insulinDeliveryDevice: "OMNIPOD", startedAt: "2024-02-10" },
     ],
   },
   {
@@ -141,6 +154,7 @@ const PATIENTS: SeedPatient[] = [
         subscriberRelationship: "SELF",
       },
     ],
+    deviceHistory: [{ category: "CGM", cgmDevice: "DEXCOM", startedAt: "2023-08-22" }],
   },
   {
     mrn: "MRN-0003",
@@ -176,6 +190,11 @@ const PATIENTS: SeedPatient[] = [
         subscriberRelationship: "CHILD",
         subscriberName: "Anjali Nair",
       },
+    ],
+    deviceHistory: [
+      { category: "CGM", cgmDevice: "DEXCOM", startedAt: "2025-05-01", endedAt: "2025-11-15" },
+      { category: "CGM", cgmDevice: "FREESTYLE_LIBRE", startedAt: "2025-11-16" },
+      { category: "PUMP", insulinDeliveryDevice: "TANDEM", startedAt: "2025-05-01" },
     ],
   },
   {
@@ -214,6 +233,7 @@ const PATIENTS: SeedPatient[] = [
         subscriberRelationship: "SELF",
       },
     ],
+    deviceHistory: [{ category: "CGM", cgmDevice: "DEXCOM", startedAt: "2026-06-15" }],
   },
 ];
 
@@ -343,6 +363,20 @@ async function main() {
           name: m.name,
           dosage: m.dosage,
           frequency: m.frequency,
+        })),
+      });
+    }
+
+    const hasDeviceHistory = await prisma.deviceHistory.findFirst({ where: { patientId: patient.id } });
+    if (!hasDeviceHistory) {
+      await prisma.deviceHistory.createMany({
+        data: p.deviceHistory.map((d) => ({
+          patientId: patient.id,
+          category: d.category,
+          cgmDevice: d.cgmDevice ?? null,
+          insulinDeliveryDevice: d.insulinDeliveryDevice ?? null,
+          startedAt: new Date(d.startedAt),
+          endedAt: d.endedAt ? new Date(d.endedAt) : null,
         })),
       });
     }

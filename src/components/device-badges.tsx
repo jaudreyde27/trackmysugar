@@ -6,34 +6,41 @@ import {
   OmnipodIcon,
   TandemIcon,
   MedtronicIcon,
-  MdiIcon,
 } from "@/components/device-icons";
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
-const CGM_CONFIG: Record<CgmDevice, { label: string; Icon: IconComponent; color: string }> = {
-  DEXCOM: { label: "Dexcom", Icon: DexcomIcon, color: "var(--cat-blue)" },
-  FREESTYLE_LIBRE: { label: "Libre", Icon: LibreIcon, color: "var(--cat-aqua)" },
+type DeviceConfig = { label: string; Icon: IconComponent; color: string; iconColor?: string };
+
+const CGM_CONFIG: Record<CgmDevice, DeviceConfig> = {
+  DEXCOM: { label: "Dexcom", Icon: DexcomIcon, color: "var(--cat-dexcom-green)" },
+  FREESTYLE_LIBRE: {
+    label: "Libre",
+    Icon: LibreIcon,
+    color: "var(--cat-libre-yellow)",
+    iconColor: "#171717",
+  },
 };
 
-const PUMP_CONFIG: Record<InsulinDeliveryDevice, { label: string; Icon: IconComponent; color: string }> = {
+// Real pump devices only — MDI (multiple daily injections) means the patient
+// has no pump, so it's handled as an absence case rather than a badge.
+const PUMP_CONFIG: Record<Exclude<InsulinDeliveryDevice, "MDI">, DeviceConfig> = {
   OMNIPOD: { label: "Omnipod", Icon: OmnipodIcon, color: "var(--cat-violet)" },
   TANDEM: { label: "Tandem", Icon: TandemIcon, color: "var(--cat-orange)" },
   MEDTRONIC: { label: "Medtronic", Icon: MedtronicIcon, color: "var(--cat-green)" },
-  MDI: { label: "MDI", Icon: MdiIcon, color: "var(--status-neutral)" },
 };
+
+function hasPump(device: InsulinDeliveryDevice | null): device is Exclude<InsulinDeliveryDevice, "MDI"> {
+  return device != null && device !== "MDI";
+}
 
 function DeviceBadge({
   label,
   Icon,
   color,
+  iconColor = "#ffffff",
   size = "sm",
-}: {
-  label: string;
-  Icon: IconComponent;
-  color: string;
-  size?: "sm" | "md";
-}) {
+}: DeviceConfig & { size?: "sm" | "md" }) {
   const badgeSize = size === "md" ? "h-7 w-7" : "h-5 w-5";
   const iconSize = size === "md" ? 17 : 13;
   const textSize = size === "md" ? "text-sm" : "text-xs";
@@ -41,8 +48,8 @@ function DeviceBadge({
   return (
     <span className={`inline-flex items-center gap-1.5 ${textSize} text-neutral-700 dark:text-neutral-300`}>
       <span
-        className={`inline-flex ${badgeSize} shrink-0 items-center justify-center rounded-full text-white`}
-        style={{ backgroundColor: color }}
+        className={`inline-flex ${badgeSize} shrink-0 items-center justify-center rounded-full`}
+        style={{ backgroundColor: color, color: iconColor }}
         aria-hidden
       >
         <Icon width={iconSize} height={iconSize} />
@@ -64,7 +71,9 @@ export function PumpDeviceBadge({
   device: InsulinDeliveryDevice | null;
   size?: "sm" | "md";
 }) {
-  if (!device) return <span className="text-xs text-neutral-400 dark:text-neutral-500">Not documented</span>;
+  if (!hasPump(device)) {
+    return <span className="text-xs text-neutral-400 dark:text-neutral-500">No pump</span>;
+  }
   return <DeviceBadge {...PUMP_CONFIG[device]} size={size} />;
 }
 
@@ -82,11 +91,7 @@ export function DeviceBadges({
       ) : (
         <span className="text-xs text-neutral-400 dark:text-neutral-500">CGM: —</span>
       )}
-      {insulinDeliveryDevice ? (
-        <DeviceBadge {...PUMP_CONFIG[insulinDeliveryDevice]} />
-      ) : (
-        <span className="text-xs text-neutral-400 dark:text-neutral-500">Delivery: —</span>
-      )}
+      {hasPump(insulinDeliveryDevice) && <DeviceBadge {...PUMP_CONFIG[insulinDeliveryDevice]} />}
     </div>
   );
 }

@@ -33,6 +33,11 @@ enum InsulinDeliveryDevice {
   MDI
 }
 
+enum DeviceCategory {
+  CGM
+  PUMP
+}
+
 enum PhoneType {
   MOBILE
   HOME
@@ -154,8 +159,30 @@ model Patient {
   cdcesCallSessions CdcesCallSession[]
   medications       Medication[]
   insurancePolicies InsurancePolicy[]
+  deviceHistory     DeviceHistory[]
 
   @@map("patients")
+}
+
+// One row per device a patient has used (CGM or pump), so the patient page
+// can show "Start Month/Year - Present or End Month/Year" per device rather
+// than only the single currently-active device on the Patient record.
+model DeviceHistory {
+  id        String  @id @default(cuid())
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  category              DeviceCategory
+  cgmDevice             CgmDevice?
+  insulinDeliveryDevice InsulinDeliveryDevice?
+
+  startedAt DateTime  @db.Date
+  endedAt   DateTime? @db.Date
+
+  createdAt DateTime @default(now())
+
+  @@index([patientId, category, startedAt])
+  @@map("device_history")
 }
 
 // Read-only for now, like Medication — captures what's needed to file a

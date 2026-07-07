@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
+import { R30_WINDOW_DAYS } from "@/lib/constants";
 
-export const R30_WINDOW_DAYS = 30;
+export { R30_WINDOW_DAYS };
 
 function toDateKey(d: Date): string {
   return d.toISOString().slice(0, 10);

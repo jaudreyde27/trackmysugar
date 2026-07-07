@@ -12,7 +12,16 @@ import type {
   InsurancePolicy,
   CdcesCallSession,
   PhoneType,
+  DeviceCategory,
 } from "@/generated/prisma/client";
+
+export type DeviceHistoryEntry = {
+  category: DeviceCategory;
+  cgmDevice: CgmDevice | null;
+  insulinDeliveryDevice: InsulinDeliveryDevice | null;
+  startedAt: Date;
+  endedAt: Date | null;
+};
 
 export type ContactInfo = {
   email: string | null;
@@ -53,11 +62,14 @@ export type PatientDetail = {
   syncDayHistory: Array<{ date: Date; hasData: boolean }>;
   activeMedications: Medication[];
   recentCallSessions: CdcesCallSession[];
+  deviceHistory: DeviceHistoryEntry[];
 };
 
 const CHART_WINDOW_DAYS = 90;
 const CALENDAR_WINDOW_DAYS = 30;
-const RECENT_NOTES_LIMIT = 5;
+// High enough to cover a patient's full CDCES visit history in practice —
+// the AI notes synthesis needs every notecard, not just the most recent few.
+const RECENT_NOTES_LIMIT = 100;
 
 export async function getPatientDetail(patientId: string): Promise<PatientDetail | null> {
   const patient = await prisma.patient.findUnique({
@@ -79,6 +91,7 @@ export async function getPatientDetail(patientId: string): Promise<PatientDetail
     lastCdcesTouchpointAt,
     activeMedications,
     recentCallSessions,
+    deviceHistory,
   ] = await Promise.all([
     getGlucoseStatsForPatient(patientId, 7),
     getGlucoseStatsForPatient(patientId, 14),
@@ -97,6 +110,11 @@ export async function getPatientDetail(patientId: string): Promise<PatientDetail
     getLastTouchpointForPatient(patientId),
     getActiveMedications(patientId),
     getRecentCallSessions(patientId, RECENT_NOTES_LIMIT),
+    prisma.deviceHistory.findMany({
+      where: { patientId },
+      orderBy: [{ category: "asc" }, { startedAt: "asc" }],
+      select: { category: true, cgmDevice: true, insulinDeliveryDevice: true, startedAt: true, endedAt: true },
+    }),
   ]);
 
   return {
@@ -136,5 +154,6 @@ export async function getPatientDetail(patientId: string): Promise<PatientDetail
     syncDayHistory: syncDays,
     activeMedications,
     recentCallSessions,
+    deviceHistory,
   };
 }

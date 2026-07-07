@@ -16,6 +16,8 @@ import { MedicationsList } from "@/components/medications-list";
 import { ContactInfoCard } from "@/components/contact-info-card";
 import { InsuranceCard } from "@/components/insurance-card";
 import { NotesLogSummary } from "@/components/notes-log-summary";
+import { DeviceHistorySection } from "@/components/device-history";
+import { generateNotesSummary } from "@/lib/ai/notes-summary";
 import { disconnectDexcom } from "@/app/actions/dexcom";
 
 function diabetesTypeLabel(type: "TYPE_1" | "TYPE_2") {
@@ -57,6 +59,11 @@ export default async function PatientDetailPage({
 
   const primaryStats = patient.statsByWindow[14];
   const boundDisconnect = disconnectDexcom.bind(null, patient.id);
+  const notesSummary = await generateNotesSummary(
+    patient.recentCallSessions
+      .filter((s) => s.notes.trim().length > 0)
+      .map((s) => ({ startedAt: s.startedAt, notes: s.notes }))
+  );
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -162,9 +169,9 @@ export default async function PatientDetailPage({
         </section>
 
         <section className="mt-6">
-          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Notes log</h2>
+          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">CDCES notes</h2>
           <div className="mt-2">
-            <NotesLogSummary sessions={patient.recentCallSessions} />
+            <NotesLogSummary summary={notesSummary} sessions={patient.recentCallSessions} />
           </div>
         </section>
 
@@ -200,7 +207,14 @@ export default async function PatientDetailPage({
             <PumpDeviceBadge device={patient.insulinDeliveryDevice} size="md" />
           </div>
           <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-            <PumpPlaceholder />
+            <PumpPlaceholder hasPump={patient.insulinDeliveryDevice != null && patient.insulinDeliveryDevice !== "MDI"} />
+          </div>
+        </section>
+
+        <section className="mt-6">
+          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Device history</h2>
+          <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+            <DeviceHistorySection history={patient.deviceHistory} />
           </div>
         </section>
 
