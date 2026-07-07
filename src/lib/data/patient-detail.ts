@@ -72,9 +72,12 @@ const CALENDAR_WINDOW_DAYS = 30;
 // the AI notes synthesis needs every notecard, not just the most recent few.
 const RECENT_NOTES_LIMIT = 100;
 
-export async function getPatientDetail(patientId: string): Promise<PatientDetail | null> {
-  const patient = await prisma.patient.findUnique({
-    where: { id: patientId },
+export async function getPatientDetail(
+  patientId: string,
+  organizationId: string
+): Promise<PatientDetail | null> {
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, organizationId },
     include: { dexcomConnection: true, insurancePolicies: { orderBy: { rank: "asc" } } },
   });
   if (!patient) return null;

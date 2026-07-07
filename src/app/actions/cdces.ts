@@ -13,14 +13,17 @@ import { generateTalkingPoints } from "@/lib/ai/talking-points";
 
 export async function startCdcesCall(patientId: string) {
   const session = await verifySession();
+  if (!session.staffUser.organizationId) {
+    throw new Error("Patient not found");
+  }
 
   const existingActive = await getActiveCallSession(patientId);
   if (existingActive) {
     redirect(`/patients/${patientId}`);
   }
 
-  const patient = await prisma.patient.findUnique({
-    where: { id: patientId },
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, organizationId: session.staffUser.organizationId },
     include: { dexcomConnection: true },
   });
   if (!patient) {
@@ -71,19 +74,27 @@ export async function startCdcesCall(patientId: string) {
 }
 
 export async function updateCallNotes(sessionId: string, notes: string) {
-  await verifySession();
+  const session = await verifySession();
+  if (!session.staffUser.organizationId) return;
 
   await prisma.cdcesCallSession.updateMany({
-    where: { id: sessionId, endedAt: null },
+    where: { id: sessionId, endedAt: null, patient: { organizationId: session.staffUser.organizationId } },
     data: { notes },
   });
 }
 
 export async function endCdcesCall(sessionId: string, patientId: string) {
   const session = await verifySession();
+  if (!session.staffUser.organizationId) {
+    throw new Error("Patient not found");
+  }
 
   await prisma.cdcesCallSession.updateMany({
-    where: { id: sessionId, endedAt: null },
+    where: {
+      id: sessionId,
+      endedAt: null,
+      patient: { id: patientId, organizationId: session.staffUser.organizationId },
+    },
     data: { endedAt: new Date() },
   });
 

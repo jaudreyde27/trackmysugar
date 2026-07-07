@@ -50,6 +50,9 @@ export type CurrentSession = {
     email: string;
     name: string;
     role: "ADMIN" | "CLINICIAN";
+    organizationId: string | null;
+    organizationName: string | null;
+    isPlatformAdmin: boolean;
   };
 };
 
@@ -64,7 +67,7 @@ export async function getCurrentSession(): Promise<CurrentSession | null> {
   const tokenHash = hashToken(token);
   const session = await prisma.session.findUnique({
     where: { tokenHash },
-    include: { staffUser: true },
+    include: { staffUser: { include: { organization: true } } },
   });
 
   if (!session || session.revokedAt || session.expiresAt < new Date()) {
@@ -96,6 +99,9 @@ export async function getCurrentSession(): Promise<CurrentSession | null> {
       email: session.staffUser.email,
       name: session.staffUser.name,
       role: session.staffUser.role,
+      organizationId: session.staffUser.organizationId,
+      organizationName: session.staffUser.organization?.name ?? null,
+      isPlatformAdmin: session.staffUser.isPlatformAdmin,
     },
   };
 }

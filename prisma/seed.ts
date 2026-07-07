@@ -320,7 +320,18 @@ async function seedGlucoseHistory(patientId: string, profile: GlucoseProfile) {
   }
 }
 
+// Fixed id so this matches the row the add_organization_model migration
+// backfilled existing rows onto — upserting here just keeps the name in
+// sync rather than creating a second org.
+const DEFAULT_ORG_ID = "clinic_alpine_endocrine";
+
 async function main() {
+  const org = await prisma.organization.upsert({
+    where: { id: DEFAULT_ORG_ID },
+    update: { name: "Alpine Endocrine Associates" },
+    create: { id: DEFAULT_ORG_ID, name: "Alpine Endocrine Associates" },
+  });
+
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@example.com";
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe123!";
 
@@ -334,9 +345,32 @@ async function main() {
       passwordHash,
       name: "Practice Admin",
       role: "ADMIN",
+      organizationId: org.id,
     },
   });
   console.log(`Staff user ready: ${admin.email} (password: ${adminPassword})`);
+
+  // Platform-admin login — sits above any clinic (organizationId null),
+  // sees the /admin area (org accounts, staff performance) that clinic
+  // staff never do, regardless of their own role.
+  const platformAdminEmail = process.env.SEED_PLATFORM_ADMIN_EMAIL ?? "platform-admin@example.com";
+  const platformAdminPassword = process.env.SEED_PLATFORM_ADMIN_PASSWORD ?? "ChangeMe123!";
+  const platformAdminPasswordHash = await hash(platformAdminPassword, 12);
+
+  const platformAdmin = await prisma.staffUser.upsert({
+    where: { email: platformAdminEmail },
+    update: {},
+    create: {
+      email: platformAdminEmail,
+      passwordHash: platformAdminPasswordHash,
+      name: "Platform Admin",
+      role: "ADMIN",
+      isPlatformAdmin: true,
+    },
+  });
+  console.log(
+    `Platform admin ready: ${platformAdmin.email} (password: ${platformAdminPassword})`
+  );
 
   for (const p of PATIENTS) {
     const patient = await prisma.patient.upsert({
@@ -368,6 +402,7 @@ async function main() {
         primaryProviderName: p.provider,
         cgmDevice: p.cgmDevice,
         insulinDeliveryDevice: p.insulinDeliveryDevice,
+        organizationId: org.id,
         email: p.contact.email,
         phoneMobile: p.contact.phoneMobile,
         phoneHome: p.contact.phoneHome,

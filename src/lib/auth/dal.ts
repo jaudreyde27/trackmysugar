@@ -24,3 +24,14 @@ export async function requireAdmin(): Promise<CurrentSession> {
   }
   return session;
 }
+
+// Gate for the platform-admin area (org/staff performance reporting) —
+// distinct from requireAdmin, which only checks the clinic-scoped ADMIN
+// role. A clinic's own ADMIN staff must never pass this check.
+export async function requirePlatformAdmin(): Promise<CurrentSession> {
+  const session = await verifySession();
+  if (!session.staffUser.isPlatformAdmin) {
+    redirect("/");
+  }
+  return session;
+}

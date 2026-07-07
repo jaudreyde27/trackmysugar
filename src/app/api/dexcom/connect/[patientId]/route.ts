@@ -15,7 +15,12 @@ export async function GET(
   }
 
   const { patientId } = await params;
-  const patient = await prisma.patient.findUnique({ where: { id: patientId } });
+  if (!session.staffUser.organizationId) {
+    return NextResponse.json({ error: "Patient not found" }, { status: 404 });
+  }
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, organizationId: session.staffUser.organizationId },
+  });
   if (!patient) {
     return NextResponse.json({ error: "Patient not found" }, { status: 404 });
   }

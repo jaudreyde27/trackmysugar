@@ -41,9 +41,9 @@ const EMPTY_STATS_TEMPLATE = {
   percentVeryHigh: 0,
 } as const;
 
-export async function getPatientRoster(): Promise<RosterEntry[]> {
+export async function getPatientRoster(organizationId: string): Promise<RosterEntry[]> {
   const patients = await prisma.patient.findMany({
-    where: { active: true },
+    where: { active: true, organizationId },
     include: { dexcomConnection: true },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });

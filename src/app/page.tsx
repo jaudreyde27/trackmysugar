@@ -3,12 +3,25 @@ import { getPatientRoster } from "@/lib/data/roster";
 import { TopNav } from "@/components/top-nav";
 import { PatientRosterTable, type RosterRow } from "@/components/patient-roster-table";
 
-// Filler practice name — swap for the real practice's name when known.
-const PRACTICE_NAME = "Alpine Endocrine Associates";
-
 export default async function HomePage() {
   const session = await verifySession();
-  const roster = await getPatientRoster();
+
+  // Platform-admin accounts aren't attached to a clinic, so there's no
+  // roster to show them here — their view lives under /admin instead.
+  if (!session.staffUser.organizationId) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <TopNav staffName={session.staffUser.name} isPlatformAdmin={session.staffUser.isPlatformAdmin} />
+        <main className="mx-auto w-full max-w-[1800px] flex-1 px-6 py-8">
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            This account isn&apos;t attached to a clinic. Platform admin tools live under Admin.
+          </p>
+        </main>
+      </div>
+    );
+  }
+
+  const roster = await getPatientRoster(session.staffUser.organizationId);
 
   const rows: RosterRow[] = roster.map((patient) => ({
     id: patient.id,
@@ -32,10 +45,10 @@ export default async function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <TopNav staffName={session.staffUser.name} />
+      <TopNav staffName={session.staffUser.name} isPlatformAdmin={session.staffUser.isPlatformAdmin} />
       <main className="mx-auto w-full max-w-[1800px] flex-1 px-6 py-8">
         <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-          {PRACTICE_NAME} — Practice Overview
+          {session.staffUser.organizationName} — Practice Overview
         </h1>
 
         <div className="mt-6">

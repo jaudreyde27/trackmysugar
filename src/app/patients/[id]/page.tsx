@@ -61,7 +61,9 @@ export default async function PatientDetailPage({
   const { id } = await params;
   const { dexcomError } = await searchParams;
 
-  const patient = await getPatientDetail(id);
+  if (!session.staffUser.organizationId) notFound();
+
+  const patient = await getPatientDetail(id, session.staffUser.organizationId);
   if (!patient) notFound();
 
   await logAudit({ staffUserId: session.staffUser.id, patientId: id, action: "PATIENT_VIEWED" });
@@ -104,7 +106,7 @@ export default async function PatientDetailPage({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <TopNav staffName={session.staffUser.name} />
+      <TopNav staffName={session.staffUser.name} isPlatformAdmin={session.staffUser.isPlatformAdmin} />
       <main className="mx-auto w-full max-w-4xl flex-1 px-6 py-8">
         <Link href="/" className="text-sm text-neutral-500 hover:underline dark:text-neutral-400">
           ← Practice overview

@@ -97,11 +97,35 @@ model StaffUser {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  // Null for platform-admin accounts, which sit above any single clinic and
+  // aren't org staff. `role` (ADMIN/CLINICIAN) is a clinic-scoped permission
+  // and is orthogonal to this — a clinic's own ADMIN never sees platform
+  // admin views regardless of this flag.
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  isPlatformAdmin Boolean       @default(false)
+
   sessions          Session[]
   auditLogs         AuditLog[]
   cdcesCallSessions CdcesCallSession[]
 
+  @@index([organizationId])
   @@map("staff_users")
+}
+
+// A single clinic/practice using the platform. Single-tenant in practice
+// today (one seeded org), but every clinic-facing query is scoped through
+// this from day one so multi-org support later is additive, not a retrofit.
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staffUsers StaffUser[]
+  patients   Patient[]
+
+  @@map("organizations")
 }
 
 model Session {
@@ -145,6 +169,9 @@ model Patient {
   // the prescribing provider doesn't necessarily have a dashboard login.
   primaryProviderName String?
 
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
   // Contact info
   email              String?
   phoneMobile        String?
@@ -166,6 +193,7 @@ model Patient {
   insurancePolicies InsurancePolicy[]
   deviceHistory     DeviceHistory[]
 
+  @@index([organizationId])
   @@map("patients")
 }
 
