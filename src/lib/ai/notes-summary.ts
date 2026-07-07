@@ -11,15 +11,12 @@ function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
 }
 
-function truncate(text: string, max: number): string {
-  const trimmed = text.trim();
-  return trimmed.length > max ? `${trimmed.slice(0, max - 1)}…` : trimmed;
-}
-
 // Deterministic summary used when ANTHROPIC_API_KEY isn't configured, or if
 // the API call fails — the notes section must not break either way. It can't
-// truly synthesize themes without an LLM, so it sticks to visit count, span,
-// and the most recent note verbatim rather than inventing a synthesis.
+// truly synthesize themes without an LLM, so it sticks to visit count and
+// span rather than inventing a synthesis. Always exactly two complete
+// sentences — never embeds raw note text, which is what previously forced
+// an ellipsis mid-sentence.
 function ruleBasedSummary(sessions: NotesSummaryInput[]): string {
   if (sessions.length === 0) return "No visit notes on file yet.";
 
@@ -31,9 +28,7 @@ function ruleBasedSummary(sessions: NotesSummaryInput[]): string {
       ? `${formatDate(first.startedAt)} – ${formatDate(last.startedAt)}`
       : formatDate(first.startedAt);
 
-  return `${sessions.length} visit${sessions.length === 1 ? "" : "s"} on file in total (${span}). Most recent (${formatDate(
-    last.startedAt
-  )}): "${truncate(last.notes, 180)}"`;
+  return `${sessions.length} visit${sessions.length === 1 ? "" : "s"} on file in total (${span}). Most recent visit was on ${formatDate(last.startedAt)}.`;
 }
 
 function buildPrompt(sessions: NotesSummaryInput[]): string {
@@ -49,11 +44,13 @@ Specialist) visit notes for one patient — ${sessions.length} visit${
 
 ${notecards}
 
-Write a synthesis for a clinician glancing at this patient's record:
-1. Start with one sentence stating how many total visits are on file and the
-   date range they span.
-2. Follow with 2-4 more sentences synthesizing the core recurring themes,
-   changes over time, or open concerns across the calls.
+Write a synthesis for a clinician glancing at this patient's record, in
+EXACTLY two sentences, no more:
+1. One sentence stating how many total visits are on file and the date
+   range they span.
+2. One sentence synthesizing the single most important recurring theme,
+   trend, or open concern across the calls.
+Keep both sentences complete and succinct — do not truncate or trail off.
 Base it strictly on the notes above — do not invent details not present.`;
 }
 
@@ -71,7 +68,7 @@ export async function generateNotesSummary(sessions: NotesSummaryInput[]): Promi
     const client = new Anthropic({ apiKey });
     const response = await client.messages.create({
       model: MODEL,
-      max_tokens: 400,
+      max_tokens: 150,
       system:
         "You help a diabetes care team review patient visit history. Be concise, clinical, and grounded only in the notes given.",
       messages: [{ role: "user", content: buildPrompt(sessions) }],

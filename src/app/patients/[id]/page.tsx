@@ -207,18 +207,18 @@ export default async function PatientDetailPage({
         <section className="mt-6">
           <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">CGM</h2>
           <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-            <CgmStatusLine
-              cgmDevice={patient.cgmDevice}
-              connectionState={patient.connectionState}
-              lastError={patient.lastError}
-              lastSyncSuccessAt={patient.lastSyncSuccessAt}
-              r30Count={patient.r30Count}
-              environment={patient.environment}
-            />
-            <div className="mt-4">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+              <CgmStatusLine
+                cgmDevice={patient.cgmDevice}
+                connectionState={patient.connectionState}
+                lastError={patient.lastError}
+                lastSyncSuccessAt={patient.lastSyncSuccessAt}
+                r30Count={patient.r30Count}
+                environment={patient.environment}
+              />
               <DaysTransmittedCounter count={patient.r30Count} />
             </div>
-            <div className="mt-4">
+            <div className="mt-3">
               <StreakCalendar
                 days={patient.syncDayHistory.map((d) => ({
                   date: new Date(d.date).toISOString().slice(0, 10),
@@ -226,7 +226,7 @@ export default async function PatientDetailPage({
                 }))}
               />
             </div>
-            <div className="mt-4">
+            <div className="mt-3">
               <GlucoseTrendChart
                 readings={patient.recentReadings.map((r) => ({
                   systemTime: new Date(r.systemTime).toISOString(),

@@ -16,6 +16,7 @@ export default async function HomePage() {
     firstName: patient.firstName,
     lastName: patient.lastName,
     dateOfBirth: patient.dateOfBirth.toISOString(),
+    primaryProviderName: patient.primaryProviderName,
     primaryDiagnosisCode: patient.primaryDiagnosisCode,
     cgmDevice: patient.cgmDevice,
     insulinDeliveryDevice: patient.insulinDeliveryDevice,

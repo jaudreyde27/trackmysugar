@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DisclosureToggle } from "@/components/disclosure-toggle";
 import type { ContactInfo } from "@/lib/data/patient-detail";
 import type { PhoneType, InsuranceRank, SubscriberRelationship } from "@/generated/prisma/client";
 
@@ -92,13 +93,12 @@ export function ContactAndInsuranceCard({
 
       {hasMoreDetails && (
         <div className="mt-2">
-          <button
-            type="button"
+          <DisclosureToggle
+            expanded={expanded}
             onClick={() => setExpanded((v) => !v)}
-            className="text-xs font-medium text-neutral-600 hover:underline dark:text-neutral-400"
-          >
-            {expanded ? "Hide contact & insurance details" : "Show contact & insurance details"}
-          </button>
+            labelExpanded="Hide contact & insurance details"
+            labelCollapsed="Show contact & insurance details"
+          />
 
           {expanded && (
             <div className="mt-3 space-y-4 border-t border-neutral-200 pt-3 text-sm dark:border-neutral-800">

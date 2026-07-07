@@ -19,6 +19,7 @@ export type RosterRow = {
   firstName: string;
   lastName: string;
   dateOfBirth: string;
+  primaryProviderName: string | null;
   primaryDiagnosisCode: string;
   cgmDevice: CgmDevice | null;
   insulinDeliveryDevice: InsulinDeliveryDevice | null;
@@ -32,8 +33,11 @@ export type RosterRow = {
   griScore: number | null;
 };
 
-type SortColumn = "riskZone" | "r30" | "enrolled" | "touchpoint";
+type SortColumn = "provider" | "riskZone" | "r30" | "enrolled" | "touchpoint";
 type SortState = { column: SortColumn; direction: "asc" | "desc" } | null;
+
+const HEADER_CLASS =
+  "font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400";
 
 function calculateAge(dobIso: string): number {
   const today = new Date();
@@ -78,10 +82,10 @@ function SortHeader({
     <button
       type="button"
       onClick={() => onSort(column)}
-      className="inline-flex items-center gap-1 font-medium uppercase tracking-wide text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
+      className={`inline-flex items-center gap-1 ${HEADER_CLASS} hover:text-neutral-800 dark:hover:text-neutral-200`}
     >
       {label}
-      <span className="text-[9px] text-neutral-400 dark:text-neutral-500">
+      <span className="text-[9px] normal-case text-neutral-400 dark:text-neutral-500">
         {active ? (sort.direction === "asc" ? "▲" : "▼") : "⇅"}
       </span>
     </button>
@@ -105,6 +109,8 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
     const copy = [...roster];
     copy.sort((a, b) => {
       switch (sort.column) {
+        case "provider":
+          return (a.primaryProviderName ?? "").localeCompare(b.primaryProviderName ?? "") * dir;
         case "riskZone": {
           const av = a.griScore ?? -1;
           const bv = b.griScore ?? -1;
@@ -125,25 +131,28 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
 
   return (
     <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
-      <table className="w-full min-w-[1200px] text-left text-sm">
-        <thead className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
+      <table className="w-full min-w-[1300px] text-left text-sm">
+        <thead className="border-b border-neutral-200 text-xs dark:border-neutral-800">
           <tr>
-            <th className="px-4 py-3 font-medium">Patient</th>
-            <th className="px-4 py-3 font-medium">Primary diagnosis</th>
-            <th className="px-4 py-3 font-medium">Sensors</th>
-            <th className="px-4 py-3 font-medium">
+            <th className={`px-4 py-3 ${HEADER_CLASS}`}>Patient</th>
+            <th className="px-4 py-3">
+              <SortHeader label="Provider" column="provider" sort={sort} onSort={toggleSort} />
+            </th>
+            <th className={`px-4 py-3 ${HEADER_CLASS}`}>Primary diagnosis</th>
+            <th className={`px-4 py-3 ${HEADER_CLASS}`}>Sensors</th>
+            <th className="px-4 py-3">
               <SortHeader label="R30" column="r30" sort={sort} onSort={toggleSort} />
             </th>
-            <th className="px-4 py-3 font-medium">Time in range</th>
-            <th className="px-4 py-3 font-medium">
+            <th className={`px-4 py-3 ${HEADER_CLASS}`}>Time in range</th>
+            <th className="px-4 py-3">
               <SortHeader label="Glycemia risk zone" column="riskZone" sort={sort} onSort={toggleSort} />
             </th>
-            <th className="px-4 py-3 font-medium">Avg glucose (14d)</th>
-            <th className="px-4 py-3 font-medium">Last sync</th>
-            <th className="px-4 py-3 font-medium">
+            <th className={`px-4 py-3 ${HEADER_CLASS}`}>Avg glucose (14d)</th>
+            <th className={`px-4 py-3 ${HEADER_CLASS}`}>Last sync</th>
+            <th className="px-4 py-3">
               <SortHeader label="Enrolled" column="enrolled" sort={sort} onSort={toggleSort} />
             </th>
-            <th className="px-4 py-3 font-medium">
+            <th className="px-4 py-3">
               <SortHeader label="Last CDCES touchpoint" column="touchpoint" sort={sort} onSort={toggleSort} />
             </th>
           </tr>
@@ -165,6 +174,11 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
                   DOB {formatShortDate(patient.dateOfBirth)}
                 </div>
                 <div className="text-xs text-neutral-500 dark:text-neutral-400">{patient.mrn}</div>
+              </td>
+              <td className="px-4 py-3 text-neutral-700 dark:text-neutral-300">
+                {patient.primaryProviderName ?? (
+                  <span className="text-neutral-400 dark:text-neutral-500">Unassigned</span>
+                )}
               </td>
               <td className="px-4 py-3">
                 <DiagnosisDisplay code={patient.primaryDiagnosisCode} />
@@ -213,7 +227,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
           ))}
           {sorted.length === 0 && (
             <tr>
-              <td colSpan={10} className="px-4 py-8 text-center text-neutral-500">
+              <td colSpan={11} className="px-4 py-8 text-center text-neutral-500">
                 No patients yet.
               </td>
             </tr>

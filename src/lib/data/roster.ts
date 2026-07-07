@@ -14,6 +14,7 @@ export type RosterEntry = {
   firstName: string;
   lastName: string;
   dateOfBirth: Date;
+  primaryProviderName: string | null;
   primaryDiagnosisCode: string;
   cgmDevice: CgmDevice | null;
   insulinDeliveryDevice: InsulinDeliveryDevice | null;
@@ -61,6 +62,7 @@ export async function getPatientRoster(): Promise<RosterEntry[]> {
       firstName: patient.firstName,
       lastName: patient.lastName,
       dateOfBirth: patient.dateOfBirth,
+      primaryProviderName: patient.primaryProviderName,
       primaryDiagnosisCode: patient.primaryDiagnosisCode,
       cgmDevice: patient.cgmDevice,
       insulinDeliveryDevice: patient.insulinDeliveryDevice,

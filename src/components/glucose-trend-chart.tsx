@@ -19,15 +19,6 @@ const DAY_RANGE_OPTIONS = [7, 14, 30, 90] as const;
 type DayRange = (typeof DAY_RANGE_OPTIONS)[number];
 const DEFAULT_DAY_RANGE: DayRange = 14;
 
-function RangeLegend({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-      {label}
-    </div>
-  );
-}
-
 export function GlucoseTrendChart({
   readings,
   statsByWindow,
@@ -88,32 +79,24 @@ export function GlucoseTrendChart({
 
   const stats = statsByWindow[dayRange];
 
+  // Avg glucose, GMI, and the TIR breakdown share one row — the circles'
+  // own abbreviation labels and hover tooltips already carry the full
+  // range legend, so a separate legend row here was pure duplication.
   const statsPanel = (
-    <div className="mt-4 border-t border-neutral-200 pt-4 dark:border-neutral-800">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-        <div>
-          <span className="text-xs text-neutral-500 dark:text-neutral-400">Avg glucose </span>
-          <span className="tabular-nums text-neutral-700 dark:text-neutral-300">
-            {stats.averageGlucose != null ? `${stats.averageGlucose.toFixed(0)} mg/dL` : "—"}
-          </span>
-        </div>
-        <div>
-          <span className="text-xs text-neutral-500 dark:text-neutral-400">GMI </span>
-          <span className="tabular-nums text-neutral-700 dark:text-neutral-300">
-            {stats.gmi != null ? `${stats.gmi.toFixed(1)}%` : "—"}
-          </span>
-        </div>
+    <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-neutral-200 pt-3 text-sm dark:border-neutral-800">
+      <div>
+        <span className="text-xs text-neutral-500 dark:text-neutral-400">Avg glucose </span>
+        <span className="tabular-nums text-neutral-700 dark:text-neutral-300">
+          {stats.averageGlucose != null ? `${stats.averageGlucose.toFixed(0)} mg/dL` : "—"}
+        </span>
       </div>
-      <div className="mt-3">
-        <TimeInRangeBreakdown stats={stats} />
+      <div>
+        <span className="text-xs text-neutral-500 dark:text-neutral-400">GMI </span>
+        <span className="tabular-nums text-neutral-700 dark:text-neutral-300">
+          {stats.gmi != null ? `${stats.gmi.toFixed(1)}%` : "—"}
+        </span>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-neutral-500 dark:text-neutral-400 sm:grid-cols-5">
-        <RangeLegend color="var(--status-critical)" label="Very low <54" />
-        <RangeLegend color="var(--status-serious)" label="Low 54–69" />
-        <RangeLegend color="var(--status-good)" label="In range 70–180" />
-        <RangeLegend color="var(--status-warning)" label="High 181–250" />
-        <RangeLegend color="var(--status-critical)" label="Very high >250" />
-      </div>
+      <TimeInRangeBreakdown stats={stats} />
     </div>
   );
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DisclosureToggle } from "@/components/disclosure-toggle";
 
 export type TouchpointRow = {
   id: string;
@@ -50,13 +51,14 @@ export function CdcesTouchpointsList({ touchpoints }: { touchpoints: TouchpointR
         ))}
       </ul>
       {sorted.length > VISIBLE_COUNT && (
-        <button
-          type="button"
-          onClick={() => setShowAll((v) => !v)}
-          className="mt-2 text-xs font-medium text-neutral-600 hover:underline dark:text-neutral-400"
-        >
-          {showAll ? "Show less" : `View full history (${sorted.length})`}
-        </button>
+        <div className="mt-2">
+          <DisclosureToggle
+            expanded={showAll}
+            onClick={() => setShowAll((v) => !v)}
+            labelExpanded="Show less"
+            labelCollapsed={`View full history (${sorted.length})`}
+          />
+        </div>
       )}
     </div>
   );

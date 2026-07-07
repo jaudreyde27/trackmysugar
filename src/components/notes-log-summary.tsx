@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DisclosureToggle } from "@/components/disclosure-toggle";
 
 export type NotecardRow = {
   id: string;
@@ -28,13 +29,12 @@ export function NotesLogSummary({ summary, sessions }: { summary: string; sessio
 
       {notecards.length > 0 && (
         <div className="mt-3">
-          <button
-            type="button"
+          <DisclosureToggle
+            expanded={expanded}
             onClick={() => setExpanded((v) => !v)}
-            className="text-xs font-medium text-neutral-600 hover:underline dark:text-neutral-400"
-          >
-            {expanded ? "Hide visit notes" : `Show all visit notes (${notecards.length})`}
-          </button>
+            labelExpanded="Hide visit notes"
+            labelCollapsed={`Show all visit notes (${notecards.length})`}
+          />
 
           {expanded && (
             <ul className="mt-2 space-y-3">

@@ -62,6 +62,7 @@ type SeedPatient = {
   lastName: string;
   dob: string;
   enrolledAt: string;
+  provider: string;
   type: DiabetesType;
   diagnosisCode: string;
   cgmDevice: CgmDevice | null;
@@ -80,6 +81,7 @@ const PATIENTS: SeedPatient[] = [
     lastName: "Thompson",
     dob: "1988-03-14",
     enrolledAt: "2024-02-10",
+    provider: "Dr. Sarah Chen",
     type: "TYPE_1",
     diagnosisCode: "E10.9",
     cgmDevice: "DEXCOM",
@@ -117,6 +119,7 @@ const PATIENTS: SeedPatient[] = [
     lastName: "Santos",
     dob: "1975-11-02",
     enrolledAt: "2023-08-22",
+    provider: "Dr. Michael Torres",
     type: "TYPE_2",
     diagnosisCode: "E11.65",
     cgmDevice: "DEXCOM",
@@ -162,6 +165,7 @@ const PATIENTS: SeedPatient[] = [
     lastName: "Nair",
     dob: "2003-07-21",
     enrolledAt: "2025-05-01",
+    provider: "Dr. Sarah Chen",
     type: "TYPE_1",
     diagnosisCode: "E10.65",
     cgmDevice: "FREESTYLE_LIBRE",
@@ -203,6 +207,7 @@ const PATIENTS: SeedPatient[] = [
     lastName: "Okafor",
     dob: "1966-01-30",
     enrolledAt: "2026-06-15",
+    provider: "Dr. Michael Torres",
     type: "TYPE_2",
     diagnosisCode: "E11.9",
     cgmDevice: "DEXCOM",
@@ -237,18 +242,37 @@ const PATIENTS: SeedPatient[] = [
   },
 ];
 
-function randomNormal(mean: number, stdDev: number): number {
-  // Box-Muller transform, clamped to a plausible mg/dL range.
+function gaussianStep(stdDev: number): number {
+  // Box-Muller transform for a small increment (not an absolute value).
   const u1 = Math.random() || 1e-9;
   const u2 = Math.random();
-  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-  return Math.round(Math.min(400, Math.max(40, mean + z * stdDev)));
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2) * stdDev;
+}
+
+// Gaussian-shaped bumps peaking ~60-90 min after breakfast/lunch/dinner and
+// fading over ~4 hours — approximates the postprandial excursions a real CGM
+// trace shows, rather than treating every tick as independent noise.
+function mealBump(minuteOfDay: number): number {
+  const meals = [7 * 60, 12 * 60, 18.5 * 60];
+  let bump = 0;
+  for (const start of meals) {
+    const t = minuteOfDay - start;
+    if (t >= 0 && t <= 240) {
+      bump += 55 * Math.exp(-((t - 70) ** 2) / (2 * 45 ** 2));
+    }
+  }
+  return bump;
 }
 
 async function seedGlucoseHistory(patientId: string, profile: GlucoseProfile) {
   const now = new Date();
+  // Mean-reverting random walk (Ornstein-Uhlenbeck-ish), carried across the
+  // whole history so consecutive readings actually look continuous — plain
+  // independent-per-tick noise reads as static, nothing like a real Dexcom
+  // trace. Walking oldest-to-newest keeps that continuity chronological.
+  let current = profile.mean;
 
-  for (let dayOffset = 1; dayOffset <= 30; dayOffset++) {
+  for (let dayOffset = 30; dayOffset >= 1; dayOffset--) {
     const dayStart = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dayOffset)
     );
@@ -267,9 +291,12 @@ async function seedGlucoseHistory(patientId: string, profile: GlucoseProfile) {
     // Dexcom cadence, plenty for demo stats/charts).
     const readings: { systemTime: Date; value: number }[] = [];
     for (let minute = 0; minute < 24 * 60; minute += 15) {
+      const target = profile.mean + mealBump(minute);
+      current += (target - current) * 0.15 + gaussianStep(profile.stdDev * 0.12);
+      current = Math.min(400, Math.max(40, current));
       readings.push({
         systemTime: new Date(dayStart.getTime() + minute * 60 * 1000),
-        value: randomNormal(profile.mean, profile.stdDev),
+        value: Math.round(current),
       });
     }
 
@@ -316,6 +343,7 @@ async function main() {
       where: { mrn: p.mrn },
       update: {
         primaryDiagnosisCode: p.diagnosisCode,
+        primaryProviderName: p.provider,
         cgmDevice: p.cgmDevice,
         insulinDeliveryDevice: p.insulinDeliveryDevice,
         enrolledAt: new Date(p.enrolledAt),
@@ -337,6 +365,7 @@ async function main() {
         enrolledAt: new Date(p.enrolledAt),
         diabetesType: p.type,
         primaryDiagnosisCode: p.diagnosisCode,
+        primaryProviderName: p.provider,
         cgmDevice: p.cgmDevice,
         insulinDeliveryDevice: p.insulinDeliveryDevice,
         email: p.contact.email,

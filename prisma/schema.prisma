@@ -140,6 +140,11 @@ model Patient {
   cgmDevice             CgmDevice?
   insulinDeliveryDevice InsulinDeliveryDevice?
 
+  // Name of the in-practice provider (endocrinologist/APP) the patient
+  // usually sees — a plain display field, not linked to StaffUser, since
+  // the prescribing provider doesn't necessarily have a dashboard login.
+  primaryProviderName String?
+
   // Contact info
   email              String?
   phoneMobile        String?
