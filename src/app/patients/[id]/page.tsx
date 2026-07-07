@@ -5,10 +5,9 @@ import { getPatientDetail } from "@/lib/data/patient-detail";
 import { logAudit } from "@/lib/audit";
 import { TopNav } from "@/components/top-nav";
 import { StreakCalendar } from "@/components/streak-calendar";
-import { ConnectionStatusBadge } from "@/components/connection-status-badge";
-import { TimeInRangeBreakdown } from "@/components/time-in-range-breakdown";
 import { GlucoseTrendChart } from "@/components/glucose-trend-chart";
 import { CgmDeviceBadge, PumpDeviceBadge } from "@/components/device-badges";
+import { CgmStatusLine } from "@/components/cgm-status";
 import { DiagnosisDisplay } from "@/components/diagnosis-display";
 import { DaysTransmittedCounter } from "@/components/days-transmitted-counter";
 import { PumpPlaceholder } from "@/components/pump-placeholder";
@@ -17,8 +16,11 @@ import { ContactInfoCard } from "@/components/contact-info-card";
 import { InsuranceCard } from "@/components/insurance-card";
 import { NotesLogSummary } from "@/components/notes-log-summary";
 import { DeviceHistorySection } from "@/components/device-history";
+import { CdcesTouchpointsList, type TouchpointRow } from "@/components/cdces-touchpoints-list";
+import { CallTimer } from "@/components/call-timer";
+import { CallNotesEditor } from "@/components/call-notes-editor";
 import { generateNotesSummary } from "@/lib/ai/notes-summary";
-import { disconnectDexcom } from "@/app/actions/dexcom";
+import { startCdcesCall, endCdcesCall } from "@/app/actions/cdces";
 
 function diabetesTypeLabel(type: "TYPE_1" | "TYPE_2") {
   return type === "TYPE_1" ? "Type 1 diabetes" : "Type 2 diabetes";
@@ -34,36 +36,42 @@ function formatDateTime(date: Date | null): string {
   return new Date(date).toLocaleString([], {
     month: "short",
     day: "numeric",
+    year: "numeric",
     hour: "numeric",
     minute: "2-digit",
   });
 }
 
-const WINDOWS = [7, 14, 30] as const;
-
 export default async function PatientDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ dexcomError?: string }>;
 }) {
   const session = await verifySession();
   const { id } = await params;
-  const { dexcomError } = await searchParams;
 
   const patient = await getPatientDetail(id);
   if (!patient) notFound();
 
   await logAudit({ staffUserId: session.staffUser.id, patientId: id, action: "PATIENT_VIEWED" });
 
-  const primaryStats = patient.statsByWindow[14];
-  const boundDisconnect = disconnectDexcom.bind(null, patient.id);
+  const boundStartCall = startCdcesCall.bind(null, patient.id);
+  const activeCallSession = patient.activeCallSession;
+
+  const pastCallSessions = patient.recentCallSessions.filter((s) => s.id !== activeCallSession?.id);
+  const touchpointRows: TouchpointRow[] = pastCallSessions.map((s) => ({
+    id: s.id,
+    startedAt: s.startedAt.toISOString(),
+    endedAt: s.endedAt ? s.endedAt.toISOString() : null,
+  }));
+
   const notesSummary = await generateNotesSummary(
-    patient.recentCallSessions
+    pastCallSessions
       .filter((s) => s.notes.trim().length > 0)
       .map((s) => ({ startedAt: s.startedAt, notes: s.notes }))
   );
+
+  const hasPump = patient.insulinDeliveryDevice != null && patient.insulinDeliveryDevice !== "MDI";
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -85,13 +93,11 @@ export default async function PatientDetailPage({
           <div className="mt-2">
             <DiagnosisDisplay code={patient.primaryDiagnosisCode} />
           </div>
-        </div>
-
-        {dexcomError && (
-          <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-            Dexcom connection failed. Please try again.
+          <div className="mt-3 flex flex-wrap items-center gap-4">
+            <CgmDeviceBadge device={patient.cgmDevice} size="md" />
+            <PumpDeviceBadge device={patient.insulinDeliveryDevice} size="md" />
           </div>
-        )}
+        </div>
 
         <section className="mt-6">
           <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
@@ -111,77 +117,98 @@ export default async function PatientDetailPage({
 
         <section className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                Dexcom connection
-              </div>
-              <div className="mt-1">
-                <ConnectionStatusBadge state={patient.connectionState} />
-              </div>
-              {patient.connectionState === "ERROR" && patient.lastError && (
-                <p className="mt-1 max-w-md text-xs text-red-600 dark:text-red-400">
-                  {patient.lastError}
-                </p>
-              )}
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                Last sync attempt: {formatDateTime(patient.lastSyncAttemptAt)} · Last success:{" "}
-                {formatDateTime(patient.lastSyncSuccessAt)}
-                {patient.environment === "SANDBOX" && " · sandbox data"}
-              </p>
-            </div>
-            {patient.connectionState === "ACTIVE" ? (
-              <form action={boundDisconnect}>
+            <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+              CDCES touchpoints
+            </h2>
+            {!activeCallSession && (
+              <form action={boundStartCall}>
                 <button
                   type="submit"
-                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-900"
+                  className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
                 >
-                  Disconnect
+                  Start CDCES call
                 </button>
               </form>
-            ) : (
-              <a
-                href={`/api/dexcom/connect/${patient.id}`}
-                className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
-              >
-                {patient.connectionState === "ERROR" ? "Reconnect to Dexcom" : "Connect to Dexcom"}
-              </a>
             )}
           </div>
-        </section>
 
-        <section className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-                CDCES touchpoints
+          {activeCallSession && (
+            <div className="mt-4 space-y-4">
+              <div className="flex items-center justify-between rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
+                <div>
+                  <div className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                    Call in progress
+                  </div>
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                    Started {formatDateTime(activeCallSession.startedAt)}
+                  </div>
+                </div>
+                <CallTimer startedAt={activeCallSession.startedAt.toISOString()} />
               </div>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                Last touchpoint: {formatDateTime(patient.lastCdcesTouchpointAt)}
-              </p>
+
+              <div>
+                <h3 className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                  Key talking points
+                </h3>
+                <div className="mt-1 rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-300">
+                  <ul className="list-inside list-disc space-y-1">
+                    {(activeCallSession.talkingPoints ?? "")
+                      .split("\n")
+                      .map((line) => line.replace(/^[-*]\s*/, "").trim())
+                      .filter(Boolean)
+                      .map((line, i) => (
+                        <li key={i}>{line}</li>
+                      ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                  Call notes
+                </h3>
+                <div className="mt-1">
+                  <CallNotesEditor sessionId={activeCallSession.id} initialNotes={activeCallSession.notes} />
+                </div>
+              </div>
+
+              <form action={endCdcesCall.bind(null, activeCallSession.id, patient.id)}>
+                <button
+                  type="submit"
+                  className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                >
+                  End call
+                </button>
+              </form>
             </div>
-            <Link
-              href={`/patients/${patient.id}/call`}
-              className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
-            >
-              Start CDCES call
-            </Link>
+          )}
+
+          <div className="mt-4">
+            <CdcesTouchpointsList touchpoints={touchpointRows} />
           </div>
         </section>
 
         <section className="mt-6">
           <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">CDCES notes</h2>
           <div className="mt-2">
-            <NotesLogSummary summary={notesSummary} sessions={patient.recentCallSessions} />
+            <NotesLogSummary summary={notesSummary} sessions={pastCallSessions} />
           </div>
         </section>
 
         <section className="mt-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">CGM</h2>
-            <CgmDeviceBadge device={patient.cgmDevice} size="md" />
-          </div>
+          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">CGM</h2>
           <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-            <DaysTransmittedCounter count={patient.r30Count} />
+            <CgmStatusLine
+              cgmDevice={patient.cgmDevice}
+              connectionState={patient.connectionState}
+              lastError={patient.lastError}
+              lastSyncSuccessAt={patient.lastSyncSuccessAt}
+              r30Count={patient.r30Count}
+              environment={patient.environment}
+            />
+            <div className="mt-4">
+              <DaysTransmittedCounter count={patient.r30Count} />
+            </div>
             <div className="mt-4">
               <StreakCalendar
                 days={patient.syncDayHistory.map((d) => ({
@@ -196,18 +223,16 @@ export default async function PatientDetailPage({
                   systemTime: new Date(r.systemTime).toISOString(),
                   value: r.value,
                 }))}
+                statsByWindow={patient.statsByWindow}
               />
             </div>
           </div>
         </section>
 
         <section className="mt-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Pump</h2>
-            <PumpDeviceBadge device={patient.insulinDeliveryDevice} size="md" />
-          </div>
+          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Pump</h2>
           <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-            <PumpPlaceholder hasPump={patient.insulinDeliveryDevice != null && patient.insulinDeliveryDevice !== "MDI"} />
+            <PumpPlaceholder hasPump={hasPump} />
           </div>
         </section>
 
@@ -219,53 +244,6 @@ export default async function PatientDetailPage({
         </section>
 
         <section className="mt-6">
-          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Statistics</h2>
-          <div className="mt-2 overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
-            <table className="w-full min-w-[620px] text-left text-sm">
-              <thead className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Window</th>
-                  <th className="px-4 py-3 font-medium">Avg glucose</th>
-                  <th className="px-4 py-3 font-medium">GMI</th>
-                  <th className="px-4 py-3 font-medium">Time in range</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
-                {WINDOWS.map((w) => {
-                  const s = patient.statsByWindow[w];
-                  return (
-                    <tr key={w}>
-                      <td className="px-4 py-3 text-neutral-700 dark:text-neutral-300">
-                        {w} days
-                      </td>
-                      <td className="px-4 py-3 tabular-nums text-neutral-700 dark:text-neutral-300">
-                        {s.averageGlucose != null ? `${s.averageGlucose.toFixed(0)} mg/dL` : "—"}
-                      </td>
-                      <td className="px-4 py-3 tabular-nums text-neutral-700 dark:text-neutral-300">
-                        {s.gmi != null ? `${s.gmi.toFixed(1)}%` : "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <TimeInRangeBreakdown stats={s} />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-neutral-500 dark:text-neutral-400 sm:grid-cols-5">
-            <RangeLegend color="var(--status-critical)" label="Very low <54" />
-            <RangeLegend color="var(--status-serious)" label="Low 54–69" />
-            <RangeLegend color="var(--status-good)" label="In range 70–180" />
-            <RangeLegend color="var(--status-warning)" label="High 181–250" />
-            <RangeLegend color="var(--status-critical)" label="Very high >250" />
-          </div>
-          <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-            Based on {primaryStats.readingCount} readings in the last 14 days.
-          </p>
-        </section>
-
-        <section className="mt-6">
           <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
             Active medications
           </h2>
@@ -274,15 +252,6 @@ export default async function PatientDetailPage({
           </div>
         </section>
       </main>
-    </div>
-  );
-}
-
-function RangeLegend({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-      {label}
     </div>
   );
 }

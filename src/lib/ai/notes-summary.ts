@@ -17,7 +17,9 @@ function truncate(text: string, max: number): string {
 }
 
 // Deterministic summary used when ANTHROPIC_API_KEY isn't configured, or if
-// the API call fails — the notes section must not break either way.
+// the API call fails — the notes section must not break either way. It can't
+// truly synthesize themes without an LLM, so it sticks to visit count, span,
+// and the most recent note verbatim rather than inventing a synthesis.
 function ruleBasedSummary(sessions: NotesSummaryInput[]): string {
   if (sessions.length === 0) return "No visit notes on file yet.";
 
@@ -29,7 +31,7 @@ function ruleBasedSummary(sessions: NotesSummaryInput[]): string {
       ? `${formatDate(first.startedAt)} – ${formatDate(last.startedAt)}`
       : formatDate(first.startedAt);
 
-  return `${sessions.length} visit note${sessions.length === 1 ? "" : "s"} on file (${span}). Most recent (${formatDate(
+  return `${sessions.length} visit${sessions.length === 1 ? "" : "s"} on file in total (${span}). Most recent (${formatDate(
     last.startedAt
   )}): "${truncate(last.notes, 180)}"`;
 }
@@ -41,12 +43,17 @@ function buildPrompt(sessions: NotesSummaryInput[]): string {
     .join("\n\n");
 
   return `Below are chronological CDCES (Certified Diabetes Care and Education
-Specialist) visit notes for one patient.
+Specialist) visit notes for one patient — ${sessions.length} visit${
+    sessions.length === 1 ? "" : "s"
+  } in total.
 
 ${notecards}
 
-Write a 2-4 sentence synthesis for a clinician glancing at this patient's
-record: call out any recurring themes, changes over time, or open concerns.
+Write a synthesis for a clinician glancing at this patient's record:
+1. Start with one sentence stating how many total visits are on file and the
+   date range they span.
+2. Follow with 2-4 more sentences synthesizing the core recurring themes,
+   changes over time, or open concerns across the calls.
 Base it strictly on the notes above — do not invent details not present.`;
 }
 

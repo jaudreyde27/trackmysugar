@@ -16,7 +16,7 @@ export async function startCdcesCall(patientId: string) {
 
   const existingActive = await getActiveCallSession(patientId);
   if (existingActive) {
-    redirect(`/patients/${patientId}/call`);
+    redirect(`/patients/${patientId}`);
   }
 
   const patient = await prisma.patient.findUnique({
@@ -66,7 +66,8 @@ export async function startCdcesCall(patientId: string) {
     metadata: { callSessionId: callSession.id },
   });
 
-  redirect(`/patients/${patientId}/call`);
+  revalidatePath(`/patients/${patientId}`);
+  redirect(`/patients/${patientId}`);
 }
 
 export async function updateCallNotes(sessionId: string, notes: string) {

@@ -353,6 +353,32 @@ async function main() {
 
     if (p.profile) {
       await seedGlucoseHistory(patient.id, p.profile);
+
+      // Reflect a real daily sync job having run successfully as of
+      // yesterday (the most recent day seedGlucoseHistory always fills in
+      // when syncedDaysOutOf30 >= 1) — otherwise "Last sync" on the CGM
+      // panel would show nothing despite having a full glucose history.
+      const now = new Date();
+      const lastSync = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1, 6, 0, 0)
+      );
+      await prisma.dexcomConnection.upsert({
+        where: { patientId: patient.id },
+        update: {
+          status: "ACTIVE",
+          environment: "SANDBOX",
+          lastSyncAttemptAt: lastSync,
+          lastSyncSuccessAt: lastSync,
+        },
+        create: {
+          patientId: patient.id,
+          status: "ACTIVE",
+          environment: "SANDBOX",
+          connectedAt: new Date(p.enrolledAt),
+          lastSyncAttemptAt: lastSync,
+          lastSyncSuccessAt: lastSync,
+        },
+      });
     }
 
     const hasMedications = await prisma.medication.findFirst({ where: { patientId: patient.id } });
@@ -407,25 +433,56 @@ async function main() {
   }
   console.log(`Seeded ${PATIENTS.length} sample patients with synthetic glucose history.`);
 
-  // One completed CDCES touchpoint for the first patient, so the dashboard
-  // has a non-empty "Last CDCES touchpoint" to show.
+  // A few completed CDCES touchpoints for the first patient — spanning
+  // several months so the dashboard's "Last CDCES touchpoint" and the AI
+  // notes synthesis both have a realistic multi-visit history to work with.
   const ava = await prisma.patient.findUnique({ where: { mrn: "MRN-0001" } });
   const existingCall = ava
     ? await prisma.cdcesCallSession.findFirst({ where: { patientId: ava.id } })
     : null;
   if (ava && !existingCall) {
-    const startedAt = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
-    await prisma.cdcesCallSession.create({
-      data: {
-        patientId: ava.id,
-        staffUserId: admin.id,
-        startedAt,
-        endedAt: new Date(startedAt.getTime() + 12 * 60 * 1000),
-        notes: "Reviewed pump settings and reinforced carb counting. Patient doing well overall.",
+    const daysAgoAt = (n: number, hour: number, minute: number) => {
+      const d = new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+      d.setHours(hour, minute, 0, 0);
+      return d;
+    };
+    const avaCalls = [
+      {
+        startedAt: daysAgoAt(90, 10, 15),
+        durationMin: 18,
+        notes:
+          "Discussed initial CGM sensor placement and reviewed onboarding materials. Patient reported adhesive irritation with the first sensor site and we discussed rotation strategy across the abdomen and upper arm. Also confirmed carb-counting basics given the recent Omnipod start, and scheduled a follow-up in six weeks.",
+        talkingPoints: "- New to CGM and pump — confirm onboarding materials landed.\n- Time in range is 61%, below the 70% target.",
+      },
+      {
+        startedAt: daysAgoAt(45, 14, 30),
+        durationMin: 15,
+        notes:
+          "Followed up on sensor adhesion — patient switched sites and irritation resolved. Time in range has improved noticeably since the last call, particularly overnight. Reinforced bolus timing before meals to reduce the postprandial spikes she'd been seeing, and reviewed her food log together.",
+        talkingPoints: "- Time in range improved to 71%.\n- Adhesive irritation resolved after site rotation change.",
+      },
+      {
+        startedAt: daysAgoAt(5, 11, 44),
+        durationMin: 12,
+        notes:
+          "Reviewed pump settings and reinforced carb counting; patient is doing well overall with no hypoglycemia episodes reported in the past two weeks. Discussed upcoming travel and adjusting basal rates for a time zone change. Scheduled a follow-up touchpoint in one month.",
         talkingPoints: "- Time in range is 78%, within target.\n- No recent hypoglycemia episodes.",
       },
-    });
-    console.log("Seeded one completed CDCES call for Ava Thompson.");
+    ];
+
+    for (const call of avaCalls) {
+      await prisma.cdcesCallSession.create({
+        data: {
+          patientId: ava.id,
+          staffUserId: admin.id,
+          startedAt: call.startedAt,
+          endedAt: new Date(call.startedAt.getTime() + call.durationMin * 60 * 1000),
+          notes: call.notes,
+          talkingPoints: call.talkingPoints,
+        },
+      });
+    }
+    console.log(`Seeded ${avaCalls.length} completed CDCES calls for Ava Thompson.`);
   }
 }
 

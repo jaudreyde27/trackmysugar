@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { getGlucoseStatsForPatient, type GlucoseStats } from "@/lib/data/glucose-stats";
 import { getR30Count } from "@/lib/sync/streak";
-import { getLastTouchpointForPatient, getRecentCallSessions } from "@/lib/data/cdces";
+import { getLastTouchpointForPatient, getRecentCallSessions, getActiveCallSession } from "@/lib/data/cdces";
 import { getActiveMedications } from "@/lib/data/medications";
 import type { ConnectionState } from "@/lib/data/roster";
 import type {
@@ -57,11 +57,12 @@ export type PatientDetail = {
   lastError: string | null;
   r30Count: number;
   lastCdcesTouchpointAt: Date | null;
-  statsByWindow: Record<7 | 14 | 30, GlucoseStats>;
+  statsByWindow: Record<7 | 14 | 30 | 90, GlucoseStats>;
   recentReadings: Array<{ systemTime: Date; value: number }>;
   syncDayHistory: Array<{ date: Date; hasData: boolean }>;
   activeMedications: Medication[];
   recentCallSessions: CdcesCallSession[];
+  activeCallSession: CdcesCallSession | null;
   deviceHistory: DeviceHistoryEntry[];
 };
 
@@ -85,17 +86,20 @@ export async function getPatientDetail(patientId: string): Promise<PatientDetail
     stats7,
     stats14,
     stats30,
+    stats90,
     recentReadings,
     syncDays,
     r30Count,
     lastCdcesTouchpointAt,
     activeMedications,
     recentCallSessions,
+    activeCallSession,
     deviceHistory,
   ] = await Promise.all([
     getGlucoseStatsForPatient(patientId, 7),
     getGlucoseStatsForPatient(patientId, 14),
     getGlucoseStatsForPatient(patientId, 30),
+    getGlucoseStatsForPatient(patientId, 90),
     prisma.glucoseReading.findMany({
       where: { patientId, systemTime: { gte: since } },
       orderBy: { systemTime: "asc" },
@@ -110,6 +114,7 @@ export async function getPatientDetail(patientId: string): Promise<PatientDetail
     getLastTouchpointForPatient(patientId),
     getActiveMedications(patientId),
     getRecentCallSessions(patientId, RECENT_NOTES_LIMIT),
+    getActiveCallSession(patientId),
     prisma.deviceHistory.findMany({
       where: { patientId },
       orderBy: [{ category: "asc" }, { startedAt: "asc" }],
@@ -149,11 +154,12 @@ export async function getPatientDetail(patientId: string): Promise<PatientDetail
     lastError: patient.dexcomConnection?.lastError ?? null,
     r30Count,
     lastCdcesTouchpointAt,
-    statsByWindow: { 7: stats7, 14: stats14, 30: stats30 },
+    statsByWindow: { 7: stats7, 14: stats14, 30: stats30, 90: stats90 },
     recentReadings,
     syncDayHistory: syncDays,
     activeMedications,
     recentCallSessions,
+    activeCallSession,
     deviceHistory,
   };
 }

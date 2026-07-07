@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { TimeInRangeBreakdown } from "@/components/time-in-range-breakdown";
+import type { GlucoseStats } from "@/lib/data/glucose-stats";
 
 type Reading = { systemTime: string; value: number };
 
@@ -17,7 +19,22 @@ const DAY_RANGE_OPTIONS = [7, 14, 30, 90] as const;
 type DayRange = (typeof DAY_RANGE_OPTIONS)[number];
 const DEFAULT_DAY_RANGE: DayRange = 14;
 
-export function GlucoseTrendChart({ readings }: { readings: Reading[] }) {
+function RangeLegend({ color, label }: { color: string; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+      {label}
+    </div>
+  );
+}
+
+export function GlucoseTrendChart({
+  readings,
+  statsByWindow,
+}: {
+  readings: Reading[];
+  statsByWindow: Record<DayRange, GlucoseStats>;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [dayRange, setDayRange] = useState<DayRange>(DEFAULT_DAY_RANGE);
@@ -69,6 +86,40 @@ export function GlucoseTrendChart({ readings }: { readings: Reading[] }) {
     </div>
   );
 
+  const stats = statsByWindow[dayRange];
+
+  const statsPanel = (
+    <div className="mt-4 border-t border-neutral-200 pt-4 dark:border-neutral-800">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        <div>
+          <span className="text-xs text-neutral-500 dark:text-neutral-400">Avg glucose </span>
+          <span className="tabular-nums text-neutral-700 dark:text-neutral-300">
+            {stats.averageGlucose != null ? `${stats.averageGlucose.toFixed(0)} mg/dL` : "—"}
+          </span>
+        </div>
+        <div>
+          <span className="text-xs text-neutral-500 dark:text-neutral-400">GMI </span>
+          <span className="tabular-nums text-neutral-700 dark:text-neutral-300">
+            {stats.gmi != null ? `${stats.gmi.toFixed(1)}%` : "—"}
+          </span>
+        </div>
+      </div>
+      <div className="mt-3">
+        <TimeInRangeBreakdown stats={stats} />
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-3 text-xs text-neutral-500 dark:text-neutral-400 sm:grid-cols-5">
+        <RangeLegend color="var(--status-critical)" label="Very low <54" />
+        <RangeLegend color="var(--status-serious)" label="Low 54–69" />
+        <RangeLegend color="var(--status-good)" label="In range 70–180" />
+        <RangeLegend color="var(--status-warning)" label="High 181–250" />
+        <RangeLegend color="var(--status-critical)" label="Very high >250" />
+      </div>
+      <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+        Based on {stats.readingCount} readings in the last {dayRange} days.
+      </p>
+    </div>
+  );
+
   if (points.length === 0) {
     return (
       <div>
@@ -76,6 +127,7 @@ export function GlucoseTrendChart({ readings }: { readings: Reading[] }) {
         <div className="flex h-[220px] items-center justify-center rounded-lg border border-dashed border-neutral-300 text-sm text-neutral-500 dark:border-neutral-700">
           No glucose data in this window yet.
         </div>
+        {statsPanel}
       </div>
     );
   }
@@ -187,6 +239,7 @@ export function GlucoseTrendChart({ readings }: { readings: Reading[] }) {
           </div>
         )}
       </div>
+      {statsPanel}
     </div>
   );
 }
