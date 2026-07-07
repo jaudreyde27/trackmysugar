@@ -2,7 +2,14 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { getGlucoseStatsForPatient, type GlucoseStats } from "@/lib/data/glucose-stats";
 import { getR30Count } from "@/lib/sync/streak";
-import { getLastTouchpointForPatient, getRecentCallSessions, getActiveCallSession } from "@/lib/data/cdces";
+import {
+  getLastTouchpointForPatient,
+  getRecentMonitoringSessions,
+  getActiveCallSession,
+  getMonthlyMonitoringTotals,
+  type MonitoringSessionWithStaff,
+} from "@/lib/data/monitoring";
+import { getComplianceHistory, type ComplianceMonth } from "@/lib/data/billing";
 import { getActiveMedications } from "@/lib/data/medications";
 import type { ConnectionState } from "@/lib/data/roster";
 import type {
@@ -10,7 +17,7 @@ import type {
   InsulinDeliveryDevice,
   Medication,
   InsurancePolicy,
-  CdcesCallSession,
+  MonitoringSession,
   PhoneType,
   DeviceCategory,
 } from "@/generated/prisma/client";
@@ -19,6 +26,7 @@ export type DeviceHistoryEntry = {
   category: DeviceCategory;
   cgmDevice: CgmDevice | null;
   insulinDeliveryDevice: InsulinDeliveryDevice | null;
+  serialNumber: string | null;
   startedAt: Date;
   endedAt: Date | null;
 };
@@ -42,11 +50,18 @@ export type PatientDetail = {
   firstName: string;
   lastName: string;
   dateOfBirth: Date;
+  sex: string | null;
   enrolledAt: Date;
   diabetesType: "TYPE_1" | "TYPE_2";
   primaryDiagnosisCode: string;
   cgmDevice: CgmDevice | null;
   insulinDeliveryDevice: InsulinDeliveryDevice | null;
+  primaryProviderName: string | null;
+  supervisingProviderName: string | null;
+  careManagerName: string | null;
+  clinicalNotes: string | null;
+  consentDate: Date | null;
+  cpt99453CompletedAt: Date | null;
   contact: ContactInfo;
   insurancePolicies: InsurancePolicy[];
   connectionState: ConnectionState;
@@ -61,14 +76,17 @@ export type PatientDetail = {
   recentReadings: Array<{ systemTime: Date; value: number }>;
   syncDayHistory: Array<{ date: Date; hasData: boolean }>;
   activeMedications: Medication[];
-  recentCallSessions: CdcesCallSession[];
-  activeCallSession: CdcesCallSession | null;
+  recentMonitoringSessions: MonitoringSessionWithStaff[];
+  activeCallSession: MonitoringSession | null;
   deviceHistory: DeviceHistoryEntry[];
+  complianceHistory: ComplianceMonth[];
+  mostRecentReadingAt: Date | null;
+  monitoringMinutesThisMonth: number;
 };
 
 const CHART_WINDOW_DAYS = 90;
 const CALENDAR_WINDOW_DAYS = 30;
-// High enough to cover a patient's full CDCES visit history in practice —
+// High enough to cover a patient's full monitoring history in practice —
 // the AI notes synthesis needs every notecard, not just the most recent few.
 const RECENT_NOTES_LIMIT = 100;
 
@@ -95,9 +113,12 @@ export async function getPatientDetail(
     r30Count,
     lastCdcesTouchpointAt,
     activeMedications,
-    recentCallSessions,
+    recentMonitoringSessions,
     activeCallSession,
     deviceHistory,
+    complianceHistory,
+    mostRecentReading,
+    monitoringTotalsThisMonth,
   ] = await Promise.all([
     getGlucoseStatsForPatient(patientId, 7),
     getGlucoseStatsForPatient(patientId, 14),
@@ -116,13 +137,27 @@ export async function getPatientDetail(
     getR30Count(patientId),
     getLastTouchpointForPatient(patientId),
     getActiveMedications(patientId),
-    getRecentCallSessions(patientId, RECENT_NOTES_LIMIT),
+    getRecentMonitoringSessions(patientId, RECENT_NOTES_LIMIT),
     getActiveCallSession(patientId),
     prisma.deviceHistory.findMany({
       where: { patientId },
       orderBy: [{ category: "asc" }, { startedAt: "asc" }],
-      select: { category: true, cgmDevice: true, insulinDeliveryDevice: true, startedAt: true, endedAt: true },
+      select: {
+        category: true,
+        cgmDevice: true,
+        insulinDeliveryDevice: true,
+        serialNumber: true,
+        startedAt: true,
+        endedAt: true,
+      },
     }),
+    getComplianceHistory(patientId),
+    prisma.glucoseReading.findFirst({
+      where: { patientId },
+      orderBy: { systemTime: "desc" },
+      select: { systemTime: true },
+    }),
+    getMonthlyMonitoringTotals(patientId, new Date().getUTCFullYear(), new Date().getUTCMonth() + 1),
   ]);
 
   return {
@@ -131,11 +166,18 @@ export async function getPatientDetail(
     firstName: patient.firstName,
     lastName: patient.lastName,
     dateOfBirth: patient.dateOfBirth,
+    sex: patient.sex,
     enrolledAt: patient.enrolledAt,
     diabetesType: patient.diabetesType,
     primaryDiagnosisCode: patient.primaryDiagnosisCode,
     cgmDevice: patient.cgmDevice,
     insulinDeliveryDevice: patient.insulinDeliveryDevice,
+    primaryProviderName: patient.primaryProviderName,
+    supervisingProviderName: patient.supervisingProviderName,
+    careManagerName: patient.careManagerName,
+    clinicalNotes: patient.clinicalNotes,
+    consentDate: patient.consentDate,
+    cpt99453CompletedAt: patient.cpt99453CompletedAt,
     contact: {
       email: patient.email,
       phoneMobile: patient.phoneMobile,
@@ -161,8 +203,11 @@ export async function getPatientDetail(
     recentReadings,
     syncDayHistory: syncDays,
     activeMedications,
-    recentCallSessions,
+    recentMonitoringSessions,
     activeCallSession,
     deviceHistory,
+    complianceHistory,
+    mostRecentReadingAt: mostRecentReading?.systemTime ?? null,
+    monitoringMinutesThisMonth: monitoringTotalsThisMonth.totalSeconds / 60,
   };
 }

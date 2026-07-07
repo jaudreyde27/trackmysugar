@@ -325,11 +325,23 @@ async function seedGlucoseHistory(patientId: string, profile: GlucoseProfile) {
 // sync rather than creating a second org.
 const DEFAULT_ORG_ID = "clinic_alpine_endocrine";
 
+// Placeholder only — real medical-necessity/consent language is a legal
+// template field pending compliance review (see Organization.rpmConsentTemplate).
+const PLACEHOLDER_CONSENT_TEMPLATE =
+  "[PLACEHOLDER — pending legal/compliance review] Patient has been informed of, and " +
+  "consents to, remote physiologic monitoring services including the collection and " +
+  "review of continuous glucose monitor data by clinical staff, with communication " +
+  "occurring by phone and/or secure messaging as clinically appropriate.";
+
 async function main() {
   const org = await prisma.organization.upsert({
     where: { id: DEFAULT_ORG_ID },
-    update: { name: "Alpine Endocrine Associates" },
-    create: { id: DEFAULT_ORG_ID, name: "Alpine Endocrine Associates" },
+    update: { name: "Alpine Endocrine Associates", rpmConsentTemplate: PLACEHOLDER_CONSENT_TEMPLATE },
+    create: {
+      id: DEFAULT_ORG_ID,
+      name: "Alpine Endocrine Associates",
+      rpmConsentTemplate: PLACEHOLDER_CONSENT_TEMPLATE,
+    },
   });
 
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@example.com";
@@ -502,7 +514,7 @@ async function main() {
   // notes synthesis both have a realistic multi-visit history to work with.
   const ava = await prisma.patient.findUnique({ where: { mrn: "MRN-0001" } });
   const existingCall = ava
-    ? await prisma.cdcesCallSession.findFirst({ where: { patientId: ava.id } })
+    ? await prisma.monitoringSession.findFirst({ where: { patientId: ava.id, source: "CALL" } })
     : null;
   if (ava && !existingCall) {
     const daysAgoAt = (n: number, hour: number, minute: number) => {
@@ -535,18 +547,124 @@ async function main() {
     ];
 
     for (const call of avaCalls) {
-      await prisma.cdcesCallSession.create({
+      const endedAt = new Date(call.startedAt.getTime() + call.durationMin * 60 * 1000);
+      await prisma.monitoringSession.create({
         data: {
           patientId: ava.id,
           staffUserId: admin.id,
+          source: "CALL",
           startedAt: call.startedAt,
-          endedAt: new Date(call.startedAt.getTime() + call.durationMin * 60 * 1000),
+          occurredAt: call.startedAt,
+          endedAt,
+          durationSeconds: call.durationMin * 60,
           notes: call.notes,
           talkingPoints: call.talkingPoints,
         },
       });
     }
     console.log(`Seeded ${avaCalls.length} completed CDCES calls for Ava Thompson.`);
+  }
+
+  // Billing/audit fields + a couple of manual monitoring entries, so the
+  // new Billing tab and summary card have realistic, non-empty data for at
+  // least the demo-richest patients rather than every code showing unmet.
+  const billingSeed: Record<
+    string,
+    {
+      careManager: string;
+      supervisingProvider: string;
+      consentDaysAgo: number;
+      cpt99453DaysAgo: number | null;
+      clinicalNotes: string;
+      sex: string;
+    }
+  > = {
+    "MRN-0001": {
+      careManager: "Jordan Blake, RN",
+      supervisingProvider: "Dr. Sarah Chen",
+      consentDaysAgo: 520,
+      cpt99453DaysAgo: 515,
+      clinicalNotes: "Stable on current pump settings; monitor for adhesive site irritation.",
+      sex: "Female",
+    },
+    "MRN-0002": {
+      careManager: "Jordan Blake, RN",
+      supervisingProvider: "Dr. Michael Torres",
+      consentDaysAgo: 680,
+      cpt99453DaysAgo: 675,
+      clinicalNotes: "Dual insurance (Medicare secondary) — verify coverage before claim submission.",
+      sex: "Male",
+    },
+    "MRN-0003": {
+      careManager: "Priya Desai, CDCES",
+      supervisingProvider: "Dr. Sarah Chen",
+      consentDaysAgo: 60,
+      cpt99453DaysAgo: 58,
+      clinicalNotes: "Recently transitioned to Tandem pump; sensor adherence has been inconsistent.",
+      sex: "Female",
+    },
+    "MRN-0004": {
+      careManager: "Priya Desai, CDCES",
+      supervisingProvider: "Dr. Michael Torres",
+      consentDaysAgo: 20,
+      cpt99453DaysAgo: null,
+      clinicalNotes: "New enrollment — 99453 setup/education visit not yet completed.",
+      sex: "Male",
+    },
+  };
+
+  for (const [mrn, b] of Object.entries(billingSeed)) {
+    const patient = await prisma.patient.findUnique({ where: { mrn } });
+    if (!patient) continue;
+    await prisma.patient.update({
+      where: { id: patient.id },
+      data: {
+        careManagerName: b.careManager,
+        supervisingProviderName: b.supervisingProvider,
+        clinicalNotes: b.clinicalNotes,
+        sex: b.sex,
+        consentDate: new Date(Date.now() - b.consentDaysAgo * 24 * 60 * 60 * 1000),
+        cpt99453CompletedAt:
+          b.cpt99453DaysAgo != null ? new Date(Date.now() - b.cpt99453DaysAgo * 24 * 60 * 60 * 1000) : null,
+      },
+    });
+  }
+
+  // A couple of this-month manual/NOTE monitoring entries with interactive
+  // communication, so 99457/99458/95251 have something to actually compute
+  // against on the Billing tab rather than every code showing unmet.
+  if (ava) {
+    const existingManual = await prisma.monitoringSession.findFirst({
+      where: { patientId: ava.id, source: "MANUAL" },
+    });
+    if (!existingManual) {
+      const now = new Date();
+      const thisMonth = (day: number, hour: number) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), day, hour));
+      await prisma.monitoringSession.createMany({
+        data: [
+          {
+            patientId: ava.id,
+            staffUserId: admin.id,
+            source: "MANUAL",
+            occurredAt: thisMonth(3, 15),
+            durationSeconds: 14 * 60,
+            twoWayCommunication: true,
+            notes: "Reviewed time-in-range trend with patient by phone; no changes needed.",
+          },
+          {
+            patientId: ava.id,
+            staffUserId: admin.id,
+            source: "NOTE",
+            occurredAt: thisMonth(10, 9),
+            durationSeconds: 8 * 60,
+            twoWayCommunication: true,
+            templateUsed: "Chart Review",
+            notes: "Reviewed CGM data and chart for this reporting period. No concerning patterns identified.",
+          },
+        ],
+      });
+      console.log("Seeded this-month monitoring entries for Ava Thompson (billing demo data).");
+    }
   }
 }
 

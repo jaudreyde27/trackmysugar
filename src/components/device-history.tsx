@@ -39,7 +39,12 @@ function DeviceHistoryList({
         if (!label) return null;
         return (
           <li key={i} className="flex items-center justify-between gap-3">
-            <span className="text-neutral-700 dark:text-neutral-300">{label}</span>
+            <span className="text-neutral-700 dark:text-neutral-300">
+              {label}
+              {entry.serialNumber && (
+                <span className="ml-1.5 text-xs text-neutral-400 dark:text-neutral-500">SN {entry.serialNumber}</span>
+              )}
+            </span>
             <span className="tabular-nums text-xs text-neutral-500 dark:text-neutral-400">
               {formatMonthYear(entry.startedAt)} – {entry.endedAt ? formatMonthYear(entry.endedAt) : "Present"}
             </span>

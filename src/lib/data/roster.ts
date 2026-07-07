@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { getGlucoseStatsForAllPatients, type GlucoseStats } from "@/lib/data/glucose-stats";
 import { getR30CountsForAllPatients } from "@/lib/sync/streak";
-import { getLastTouchpointForAllPatients } from "@/lib/data/cdces";
+import { getLastTouchpointForAllPatients } from "@/lib/data/monitoring";
 import { computeGRI } from "@/lib/gri";
 import type { CgmDevice, InsulinDeliveryDevice } from "@/generated/prisma/client";
 

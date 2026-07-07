@@ -5,10 +5,9 @@ import { revalidatePath } from "next/cache";
 import { verifySession } from "@/lib/auth/dal";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
-import { getActiveCallSession } from "@/lib/data/cdces";
+import { getActiveCallSession, getLastTouchpointForPatient } from "@/lib/data/monitoring";
 import { getGlucoseStatsForPatient } from "@/lib/data/glucose-stats";
 import { getR30Count, computeCurrentStreak } from "@/lib/sync/streak";
-import { getLastTouchpointForPatient } from "@/lib/data/cdces";
 import { generateTalkingPoints } from "@/lib/ai/talking-points";
 
 export async function startCdcesCall(patientId: string) {
@@ -54,10 +53,14 @@ export async function startCdcesCall(patientId: string) {
     lastTouchpointAt,
   });
 
-  const callSession = await prisma.cdcesCallSession.create({
+  const startedAt = new Date();
+  const callSession = await prisma.monitoringSession.create({
     data: {
       patientId,
       staffUserId: session.staffUser.id,
+      source: "CALL",
+      startedAt,
+      occurredAt: startedAt,
       talkingPoints,
     },
   });
@@ -77,8 +80,13 @@ export async function updateCallNotes(sessionId: string, notes: string) {
   const session = await verifySession();
   if (!session.staffUser.organizationId) return;
 
-  await prisma.cdcesCallSession.updateMany({
-    where: { id: sessionId, endedAt: null, patient: { organizationId: session.staffUser.organizationId } },
+  await prisma.monitoringSession.updateMany({
+    where: {
+      id: sessionId,
+      source: "CALL",
+      endedAt: null,
+      patient: { organizationId: session.staffUser.organizationId },
+    },
     data: { notes },
   });
 }
@@ -89,13 +97,27 @@ export async function endCdcesCall(sessionId: string, patientId: string) {
     throw new Error("Patient not found");
   }
 
-  await prisma.cdcesCallSession.updateMany({
+  const call = await prisma.monitoringSession.findFirst({
     where: {
       id: sessionId,
+      source: "CALL",
       endedAt: null,
       patient: { id: patientId, organizationId: session.staffUser.organizationId },
     },
-    data: { endedAt: new Date() },
+    select: { startedAt: true },
+  });
+  if (!call) {
+    throw new Error("Call session not found");
+  }
+
+  const endedAt = new Date();
+  const durationSeconds = call.startedAt
+    ? Math.max(0, Math.round((endedAt.getTime() - call.startedAt.getTime()) / 1000))
+    : 0;
+
+  await prisma.monitoringSession.update({
+    where: { id: sessionId },
+    data: { endedAt, durationSeconds },
   });
 
   await logAudit({

@@ -87,6 +87,17 @@ enum EgvTrend {
   RATE_OUT_OF_RANGE
 }
 
+// CALL: created by the live "Start CDCES call" flow (has startedAt/endedAt,
+// talkingPoints). NOTE: created via the Notes panel composer, optionally
+// with Min/Sec monitoring time attached. MANUAL: logged directly on the
+// Monitoring tab's standalone time-entry form. All three roll up into the
+// same monthly compliance/billing totals.
+enum MonitoringSessionSource {
+  CALL
+  NOTE
+  MANUAL
+}
+
 model StaffUser {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -105,9 +116,10 @@ model StaffUser {
   organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   isPlatformAdmin Boolean       @default(false)
 
-  sessions          Session[]
-  auditLogs         AuditLog[]
-  cdcesCallSessions CdcesCallSession[]
+  sessions            Session[]
+  auditLogs           AuditLog[]
+  monitoringSessions  MonitoringSession[]
+  billedPeriods       BillingPeriodStatus[]
 
   @@index([organizationId])
   @@map("staff_users")
@@ -121,6 +133,11 @@ model Organization {
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Medical-necessity/consent language used on the audit report's RPM
+  // Consent section. A legal template field, not hardcoded copy — null
+  // renders a clearly-labeled placeholder pending legal/compliance review.
+  rpmConsentTemplate String?
 
   staffUsers StaffUser[]
   patients   Patient[]
@@ -150,6 +167,7 @@ model Patient {
   firstName    String
   lastName     String
   dateOfBirth  DateTime     @db.Date
+  sex          String?
   diabetesType DiabetesType
   active       Boolean      @default(true)
   createdAt    DateTime     @default(now())
@@ -168,6 +186,19 @@ model Patient {
   // usually sees — a plain display field, not linked to StaffUser, since
   // the prescribing provider doesn't necessarily have a dashboard login.
   primaryProviderName String?
+  // The billing/overseeing provider for RPM CPT codes — often distinct
+  // from the referring/primary provider above.
+  supervisingProviderName String?
+  careManagerName         String?
+
+  // Short standing clinical note shown on the summary card — distinct from
+  // the chronological visit-notes log (MonitoringSession.notes).
+  clinicalNotes String?
+
+  // One-time RPM setup/education checkoff (CPT 99453) — unlike the other
+  // billing codes, this doesn't recompute monthly once done.
+  cpt99453CompletedAt DateTime?
+  consentDate         DateTime? @db.Date
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -184,14 +215,15 @@ model Patient {
   state              String?
   postalCode         String?
 
-  dexcomConnection  DexcomConnection?
-  glucoseReadings   GlucoseReading[]
-  syncDays          SyncDay[]
-  auditLogs         AuditLog[]
-  cdcesCallSessions CdcesCallSession[]
-  medications       Medication[]
-  insurancePolicies InsurancePolicy[]
-  deviceHistory     DeviceHistory[]
+  dexcomConnection      DexcomConnection?
+  glucoseReadings       GlucoseReading[]
+  syncDays              SyncDay[]
+  auditLogs             AuditLog[]
+  monitoringSessions    MonitoringSession[]
+  medications           Medication[]
+  insurancePolicies     InsurancePolicy[]
+  deviceHistory         DeviceHistory[]
+  billingPeriodStatuses BillingPeriodStatus[]
 
   @@index([organizationId])
   @@map("patients")
@@ -208,6 +240,7 @@ model DeviceHistory {
   category              DeviceCategory
   cgmDevice             CgmDevice?
   insulinDeliveryDevice InsulinDeliveryDevice?
+  serialNumber          String?
 
   startedAt DateTime  @db.Date
   endedAt   DateTime? @db.Date
@@ -340,30 +373,66 @@ model SyncRun {
   @@map("sync_runs")
 }
 
-// A single CDCES (Certified Diabetes Care and Education Specialist) call with
-// a patient: start/end time, live notes, and the talking points shown to the
-// CDCES when the call began. This is the source of the "Last CDCES
-// touchpoint" date on the dashboard (most recent endedAt, or startedAt while
-// a call is still in progress).
-model CdcesCallSession {
+// A single loggable clinician touchpoint with a patient — a live CDCES call,
+// a standalone note from the Notes panel, or a manual entry from the
+// Monitoring tab. This is the single source of truth for both the "Last
+// CDCES touchpoint" date and every monitoring-time/billing rollup (RPM CPT
+// eligibility, compliance history) — every entry point writes here so
+// there's one rollup to compute rather than three.
+model MonitoringSession {
   id          String    @id @default(cuid())
   patientId   String
   patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
   staffUserId String
   staffUser   StaffUser @relation(fields: [staffUserId], references: [id])
 
-  startedAt DateTime  @default(now())
+  source MonitoringSessionSource @default(NOTE)
+
+  // Live call tracking (CALL source only) — endedAt null means still active.
+  startedAt DateTime?
   endedAt   DateTime?
-  notes     String    @default("")
+
+  // The date/time this entry counts toward for compliance/billing — equals
+  // startedAt for CALL rows; an explicit date/time-picker value otherwise.
+  occurredAt DateTime @default(now())
+
+  durationSeconds Int @default(0)
+
+  notes               String  @default("")
+  templateUsed        String?
+  twoWayCommunication Boolean @default(false)
 
   // Snapshot of the AI-generated (or rule-based fallback) talking points
-  // shown at call start; not regenerated as patient data changes mid-call.
+  // shown at call start (CALL source only); not regenerated mid-call.
   talkingPoints String?
 
   createdAt DateTime @default(now())
 
-  @@index([patientId, startedAt])
-  @@map("cdces_call_sessions")
+  @@index([patientId, occurredAt])
+  @@index([patientId, source, endedAt])
+  @@map("monitoring_sessions")
+}
+
+// One row per patient per billing month — tracks whether that month's
+// eligible RPM codes have actually been submitted/claimed, distinct from
+// eligibility itself (which is always recomputed from MonitoringSession/
+// SyncDay data, never stored).
+model BillingPeriodStatus {
+  id        String @id @default(cuid())
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  year      Int
+  month     Int // 1-12
+
+  markedBilledAt            DateTime?
+  markedBilledByStaffUserId String?
+  markedBilledByStaffUser   StaffUser? @relation(fields: [markedBilledByStaffUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([patientId, year, month])
+  @@map("billing_period_statuses")
 }
 
 // HIPAA-minded access log: who looked at (or acted on) which patient, when.
