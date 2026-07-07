@@ -1,26 +1,37 @@
+import type { ComponentType, SVGProps } from "react";
 import type { CgmDevice, InsulinDeliveryDevice } from "@/generated/prisma/client";
+import {
+  DexcomIcon,
+  LibreIcon,
+  OmnipodIcon,
+  TandemIcon,
+  MedtronicIcon,
+  MdiIcon,
+} from "@/components/device-icons";
 
-const CGM_CONFIG: Record<CgmDevice, { label: string; monogram: string; color: string }> = {
-  DEXCOM: { label: "Dexcom", monogram: "DX", color: "var(--cat-blue)" },
-  FREESTYLE_LIBRE: { label: "Libre", monogram: "LB", color: "var(--cat-aqua)" },
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
+
+const CGM_CONFIG: Record<CgmDevice, { label: string; Icon: IconComponent; color: string }> = {
+  DEXCOM: { label: "Dexcom", Icon: DexcomIcon, color: "var(--cat-blue)" },
+  FREESTYLE_LIBRE: { label: "Libre", Icon: LibreIcon, color: "var(--cat-aqua)" },
 };
 
-const PUMP_CONFIG: Record<InsulinDeliveryDevice, { label: string; monogram: string; color: string }> = {
-  OMNIPOD: { label: "Omnipod", monogram: "OP", color: "var(--cat-violet)" },
-  TANDEM: { label: "Tandem", monogram: "TD", color: "var(--cat-orange)" },
-  MEDTRONIC: { label: "Medtronic", monogram: "MT", color: "var(--cat-green)" },
-  MDI: { label: "MDI", monogram: "MDI", color: "var(--status-neutral)" },
+const PUMP_CONFIG: Record<InsulinDeliveryDevice, { label: string; Icon: IconComponent; color: string }> = {
+  OMNIPOD: { label: "Omnipod", Icon: OmnipodIcon, color: "var(--cat-violet)" },
+  TANDEM: { label: "Tandem", Icon: TandemIcon, color: "var(--cat-orange)" },
+  MEDTRONIC: { label: "Medtronic", Icon: MedtronicIcon, color: "var(--cat-green)" },
+  MDI: { label: "MDI", Icon: MdiIcon, color: "var(--status-neutral)" },
 };
 
-function DeviceBadge({ label, monogram, color }: { label: string; monogram: string; color: string }) {
+function DeviceBadge({ label, Icon, color }: { label: string; Icon: IconComponent; color: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-xs text-neutral-700 dark:text-neutral-300">
       <span
-        className="inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-semibold text-white"
+        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white"
         style={{ backgroundColor: color }}
         aria-hidden
       >
-        {monogram}
+        <Icon width={13} height={13} />
       </span>
       {label}
     </span>

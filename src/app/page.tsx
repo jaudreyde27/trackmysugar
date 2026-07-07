@@ -3,6 +3,7 @@ import { verifySession } from "@/lib/auth/dal";
 import { getPatientRoster } from "@/lib/data/roster";
 import { TopNav } from "@/components/top-nav";
 import { DeviceBadges } from "@/components/device-badges";
+import { DiagnosisDisplay } from "@/components/diagnosis-display";
 import { R30Badge } from "@/components/r30-badge";
 import { TimeInRangeBreakdown } from "@/components/time-in-range-breakdown";
 
@@ -25,6 +26,15 @@ function formatExactDate(date: Date | null): string {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+  });
+}
+
+function formatSyncDate(date: Date | null): string | null {
+  if (!date) return null;
+  return new Date(date).toLocaleDateString([], {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
 }
 
@@ -92,8 +102,8 @@ export default async function HomePage() {
                       {patient.mrn}
                     </div>
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-neutral-700 dark:text-neutral-300">
-                    {patient.primaryDiagnosisCode}
+                  <td className="px-4 py-3">
+                    <DiagnosisDisplay code={patient.primaryDiagnosisCode} />
                   </td>
                   <td className="px-4 py-3">
                     <DeviceBadges
@@ -125,7 +135,7 @@ export default async function HomePage() {
                             : undefined
                         }
                       >
-                        {formatRelative(patient.lastSyncSuccessAt) ?? "Never"}
+                        {formatSyncDate(patient.lastSyncSuccessAt) ?? "Never"}
                         {patient.connectionState === "ERROR" && " ⚠"}
                       </span>
                     )}

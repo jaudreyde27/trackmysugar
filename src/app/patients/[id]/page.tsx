@@ -7,9 +7,10 @@ import { TopNav } from "@/components/top-nav";
 import { StreakTicker } from "@/components/streak-ticker";
 import { StreakCalendar } from "@/components/streak-calendar";
 import { ConnectionStatusBadge } from "@/components/connection-status-badge";
-import { TimeInRangeBar } from "@/components/time-in-range-bar";
+import { TimeInRangeBreakdown } from "@/components/time-in-range-breakdown";
 import { GlucoseTrendChart } from "@/components/glucose-trend-chart";
 import { DeviceBadges } from "@/components/device-badges";
+import { DiagnosisDisplay } from "@/components/diagnosis-display";
 import { R30Badge } from "@/components/r30-badge";
 import { disconnectDexcom } from "@/app/actions/dexcom";
 
@@ -68,9 +69,11 @@ export default async function PatientDetailPage({
             </h1>
             <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
               MRN {patient.mrn} · DOB {formatDate(patient.dateOfBirth)} ·{" "}
-              {diabetesTypeLabel(patient.diabetesType)} ·{" "}
-              <span className="font-mono">{patient.primaryDiagnosisCode}</span>
+              {diabetesTypeLabel(patient.diabetesType)}
             </p>
+            <div className="mt-2">
+              <DiagnosisDisplay code={patient.primaryDiagnosisCode} />
+            </div>
             <div className="mt-2">
               <DeviceBadges
                 cgmDevice={patient.cgmDevice}
@@ -190,7 +193,7 @@ export default async function PatientDetailPage({
         <section className="mt-6">
           <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Statistics</h2>
           <div className="mt-2 overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
-            <table className="w-full min-w-[520px] text-left text-sm">
+            <table className="w-full min-w-[620px] text-left text-sm">
               <thead className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
                 <tr>
                   <th className="px-4 py-3 font-medium">Window</th>
@@ -213,8 +216,8 @@ export default async function PatientDetailPage({
                       <td className="px-4 py-3 tabular-nums text-neutral-700 dark:text-neutral-300">
                         {s.gmi != null ? `${s.gmi.toFixed(1)}%` : "—"}
                       </td>
-                      <td className="w-48 px-4 py-3">
-                        <TimeInRangeBar stats={s} />
+                      <td className="px-4 py-3">
+                        <TimeInRangeBreakdown stats={s} />
                       </td>
                     </tr>
                   );
