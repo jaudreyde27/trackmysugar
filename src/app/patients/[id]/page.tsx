@@ -12,9 +12,8 @@ import { DiagnosisDisplay } from "@/components/diagnosis-display";
 import { DaysTransmittedCounter } from "@/components/days-transmitted-counter";
 import { PumpPlaceholder } from "@/components/pump-placeholder";
 import { MedicationsList } from "@/components/medications-list";
-import { ContactInfoCard } from "@/components/contact-info-card";
-import { InsuranceCard } from "@/components/insurance-card";
-import { NotesLogSummary } from "@/components/notes-log-summary";
+import { ContactAndInsuranceCard, type InsuranceRow } from "@/components/contact-and-insurance-card";
+import { NotesLogSummary, type NotecardRow } from "@/components/notes-log-summary";
 import { DeviceHistorySection } from "@/components/device-history";
 import { CdcesTouchpointsList, type TouchpointRow } from "@/components/cdces-touchpoints-list";
 import { CallTimer } from "@/components/call-timer";
@@ -70,6 +69,23 @@ export default async function PatientDetailPage({
       .filter((s) => s.notes.trim().length > 0)
       .map((s) => ({ startedAt: s.startedAt, notes: s.notes }))
   );
+  const notecardRows: NotecardRow[] = pastCallSessions.map((s) => ({
+    id: s.id,
+    startedAt: s.startedAt.toISOString(),
+    endedAt: s.endedAt ? s.endedAt.toISOString() : null,
+    notes: s.notes,
+  }));
+
+  const insuranceRows: InsuranceRow[] = patient.insurancePolicies.map((p) => ({
+    id: p.id,
+    rank: p.rank,
+    payerName: p.payerName,
+    memberId: p.memberId,
+    groupNumber: p.groupNumber,
+    planType: p.planType,
+    subscriberRelationship: p.subscriberRelationship,
+    subscriberName: p.subscriberName,
+  }));
 
   const hasPump = patient.insulinDeliveryDevice != null && patient.insulinDeliveryDevice !== "MDI";
 
@@ -101,17 +117,10 @@ export default async function PatientDetailPage({
 
         <section className="mt-6">
           <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-            Contact information
+            Contact & insurance
           </h2>
-          <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-            <ContactInfoCard contact={patient.contact} />
-          </div>
-        </section>
-
-        <section className="mt-6">
-          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Insurance</h2>
-          <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-            <InsuranceCard policies={patient.insurancePolicies} />
+          <div className="mt-2">
+            <ContactAndInsuranceCard contact={patient.contact} insurance={insuranceRows} />
           </div>
         </section>
 
@@ -191,7 +200,7 @@ export default async function PatientDetailPage({
         <section className="mt-6">
           <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">CDCES notes</h2>
           <div className="mt-2">
-            <NotesLogSummary summary={notesSummary} sessions={pastCallSessions} />
+            <NotesLogSummary summary={notesSummary} sessions={notecardRows} />
           </div>
         </section>
 

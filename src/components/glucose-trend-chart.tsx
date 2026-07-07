@@ -114,9 +114,6 @@ export function GlucoseTrendChart({
         <RangeLegend color="var(--status-warning)" label="High 181–250" />
         <RangeLegend color="var(--status-critical)" label="Very high >250" />
       </div>
-      <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
-        Based on {stats.readingCount} readings in the last {dayRange} days.
-      </p>
     </div>
   );
 

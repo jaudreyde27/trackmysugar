@@ -62,7 +62,7 @@ export function CgmStatusLine({
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
       <StatusDot color="var(--status-good)" label="Receiving data" />
       <span className="text-xs text-neutral-500 dark:text-neutral-400">
-        Last sync: {formatDateTime(lastSyncSuccessAt)}
+        Last sensor data sync: {formatDateTime(lastSyncSuccessAt)}
         {environment === "SANDBOX" && " · sandbox data"}
       </span>
     </div>

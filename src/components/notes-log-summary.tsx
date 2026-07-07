@@ -1,20 +1,24 @@
-import type { CdcesCallSession } from "@/generated/prisma/client";
+"use client";
 
-function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+import { useState } from "react";
+
+export type NotecardRow = {
+  id: string;
+  startedAt: string;
+  endedAt: string | null;
+  notes: string;
+};
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
 }
 
-export function NotesLogSummary({
-  summary,
-  sessions,
-}: {
-  summary: string;
-  sessions: CdcesCallSession[];
-}) {
+export function NotesLogSummary({ summary, sessions }: { summary: string; sessions: NotecardRow[] }) {
+  const [expanded, setExpanded] = useState(false);
   const notecards = sessions.filter((s) => s.notes.trim().length > 0);
 
   return (
-    <div className="space-y-4">
+    <div>
       <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm dark:border-neutral-800 dark:bg-neutral-900/50">
         <div className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           AI summary across visits
@@ -22,23 +26,33 @@ export function NotesLogSummary({
         <p className="mt-1 text-neutral-700 dark:text-neutral-300">{summary}</p>
       </div>
 
-      {notecards.length === 0 ? (
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">No notecards logged yet.</p>
-      ) : (
-        <ul className="space-y-3">
-          {notecards.map((session) => (
-            <li
-              key={session.id}
-              className="rounded-lg border border-neutral-200 p-3 text-sm dark:border-neutral-800"
-            >
-              <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                {formatDate(session.startedAt)}
-                {!session.endedAt && " · in progress"}
-              </div>
-              <p className="mt-1 text-neutral-700 dark:text-neutral-300">{session.notes}</p>
-            </li>
-          ))}
-        </ul>
+      {notecards.length > 0 && (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="text-xs font-medium text-neutral-600 hover:underline dark:text-neutral-400"
+          >
+            {expanded ? "Hide visit notes" : `Show all visit notes (${notecards.length})`}
+          </button>
+
+          {expanded && (
+            <ul className="mt-2 space-y-3">
+              {notecards.map((session) => (
+                <li
+                  key={session.id}
+                  className="rounded-lg border border-neutral-200 p-3 text-sm dark:border-neutral-800"
+                >
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {formatDate(session.startedAt)}
+                    {!session.endedAt && " · in progress"}
+                  </div>
+                  <p className="mt-1 text-neutral-700 dark:text-neutral-300">{session.notes}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );
