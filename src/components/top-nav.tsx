@@ -4,9 +4,11 @@ import { logout } from "@/app/actions/auth";
 export function TopNav({
   staffName,
   isPlatformAdmin = false,
+  hasOrganization = false,
 }: {
   staffName: string;
   isPlatformAdmin?: boolean;
+  hasOrganization?: boolean;
 }) {
   return (
     <header className="border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
@@ -15,6 +17,14 @@ export function TopNav({
           TrackMySugar
         </Link>
         <div className="flex items-center gap-4">
+          {hasOrganization && (
+            <Link
+              href="/billing"
+              className="text-sm text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
+            >
+              Billing
+            </Link>
+          )}
           {isPlatformAdmin && (
             <Link
               href="/admin"

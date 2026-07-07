@@ -46,7 +46,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
   await createSession(user.id);
   await logAudit({ staffUserId: user.id, action: "LOGIN_SUCCESS" });
 
-  redirect("/");
+  redirect(user.isPlatformAdmin ? "/admin" : "/");
 }
 
 export async function logout() {

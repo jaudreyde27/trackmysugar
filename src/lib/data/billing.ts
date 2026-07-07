@@ -12,6 +12,27 @@ const CPT_99454_MIN_DAYS = 16;
 const CPT_99457_MIN_MINUTES = 20;
 const CPT_99458_MIN_MINUTES = 40;
 
+// Approximate national-average non-facility Medicare rates, for
+// illustrative dollar totals only — NOT a real fee schedule. Swap for the
+// org's actual contracted rates before relying on this for real billing.
+export const CPT_APPROX_RATES = {
+  code99453: 19,
+  code99454: 50,
+  code99457: 50,
+  code99458: 40,
+  code95251: 67,
+} as const;
+
+export function estimatedDollarsFor(eligibility: CptEligibility): number {
+  let total = 0;
+  if (eligibility.code99453) total += CPT_APPROX_RATES.code99453;
+  if (eligibility.code99454) total += CPT_APPROX_RATES.code99454;
+  if (eligibility.code99457) total += CPT_APPROX_RATES.code99457;
+  if (eligibility.code99458) total += CPT_APPROX_RATES.code99458;
+  if (eligibility.code95251) total += CPT_APPROX_RATES.code95251;
+  return total;
+}
+
 export type CptEligibility = {
   code99453: boolean; // one-time setup/education checkoff
   code99453CompletedAt: Date | null;
@@ -127,4 +148,49 @@ export function billingStatusFor(eligibility: CptEligibility, markedBilledAt: Da
     eligibility.code95251;
   if (!hasAnyEligibleCode) return "non_billable";
   return markedBilledAt ? "billed" : "billable";
+}
+
+export type BillingRow = {
+  patientId: string;
+  mrn: string;
+  firstName: string;
+  lastName: string;
+  eligibility: CptEligibility;
+  markedBilledAt: Date | null;
+  status: BillingStatus;
+};
+
+// Org-wide billing roster for a given month — the Billing tab's main table.
+export async function getBillingRosterForMonth(
+  organizationId: string,
+  year: number,
+  month: number
+): Promise<BillingRow[]> {
+  const patients = await prisma.patient.findMany({
+    where: { organizationId, active: true },
+    select: { id: true, mrn: true, firstName: true, lastName: true, cpt99453CompletedAt: true },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+  });
+
+  const periodStatuses = await prisma.billingPeriodStatus.findMany({
+    where: { patientId: { in: patients.map((p) => p.id) }, year, month },
+    select: { patientId: true, markedBilledAt: true },
+  });
+  const markedBilledByPatient = new Map(periodStatuses.map((s) => [s.patientId, s.markedBilledAt]));
+
+  return Promise.all(
+    patients.map(async (patient) => {
+      const eligibility = await getCptEligibilityForMonth(patient, year, month);
+      const markedBilledAt = markedBilledByPatient.get(patient.id) ?? null;
+      return {
+        patientId: patient.id,
+        mrn: patient.mrn,
+        firstName: patient.firstName,
+        lastName: patient.lastName,
+        eligibility,
+        markedBilledAt,
+        status: billingStatusFor(eligibility, markedBilledAt),
+      };
+    })
+  );
 }
