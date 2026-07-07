@@ -19,6 +19,7 @@ export type RosterEntry = {
   lastSyncSuccessAt: Date | null;
   lastSyncError: string | null;
   r30Count: number;
+  enrolledAt: Date;
   lastCdcesTouchpointAt: Date | null;
   stats: GlucoseStats;
 };
@@ -61,6 +62,7 @@ export async function getPatientRoster(): Promise<RosterEntry[]> {
     lastSyncSuccessAt: patient.dexcomConnection?.lastSyncSuccessAt ?? null,
     lastSyncError: patient.dexcomConnection?.lastError ?? null,
     r30Count: r30Counts.get(patient.id) ?? 0,
+    enrolledAt: patient.enrolledAt,
     lastCdcesTouchpointAt: lastTouchpoints.get(patient.id) ?? null,
     stats: statsByPatient.get(patient.id) ?? { patientId: patient.id, ...EMPTY_STATS_TEMPLATE },
   }));

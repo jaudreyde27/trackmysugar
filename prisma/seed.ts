@@ -21,16 +21,20 @@ type GlucoseProfile = {
   syncedDaysOutOf30: number;
 };
 
+type SeedMedication = { name: string; dosage: string; frequency: string };
+
 type SeedPatient = {
   mrn: string;
   firstName: string;
   lastName: string;
   dob: string;
+  enrolledAt: string;
   type: DiabetesType;
   diagnosisCode: string;
   cgmDevice: CgmDevice | null;
   insulinDeliveryDevice: InsulinDeliveryDevice | null;
   profile: GlucoseProfile | null;
+  medications: SeedMedication[];
 };
 
 const PATIENTS: SeedPatient[] = [
@@ -39,44 +43,63 @@ const PATIENTS: SeedPatient[] = [
     firstName: "Ava",
     lastName: "Thompson",
     dob: "1988-03-14",
+    enrolledAt: "2024-02-10",
     type: "TYPE_1",
     diagnosisCode: "E10.9",
     cgmDevice: "DEXCOM",
     insulinDeliveryDevice: "OMNIPOD",
     profile: { mean: 135, stdDev: 25, syncedDaysOutOf30: 30 },
+    medications: [{ name: "Insulin Aspart", dosage: "Per pump settings", frequency: "Via Omnipod" }],
   },
   {
     mrn: "MRN-0002",
     firstName: "Miguel",
     lastName: "Santos",
     dob: "1975-11-02",
+    enrolledAt: "2023-08-22",
     type: "TYPE_2",
     diagnosisCode: "E11.65",
     cgmDevice: "DEXCOM",
     insulinDeliveryDevice: "MDI",
     profile: { mean: 175, stdDev: 40, syncedDaysOutOf30: 24 },
+    medications: [
+      { name: "Insulin Glargine", dosage: "24 units", frequency: "Once daily at bedtime" },
+      { name: "Metformin", dosage: "1000 mg", frequency: "Twice daily" },
+      { name: "Atorvastatin", dosage: "20 mg", frequency: "Once daily" },
+    ],
   },
   {
     mrn: "MRN-0003",
     firstName: "Priya",
     lastName: "Nair",
     dob: "2003-07-21",
+    enrolledAt: "2025-05-01",
     type: "TYPE_1",
     diagnosisCode: "E10.65",
     cgmDevice: "FREESTYLE_LIBRE",
     insulinDeliveryDevice: "TANDEM",
     profile: { mean: 165, stdDev: 55, syncedDaysOutOf30: 10 },
+    medications: [
+      { name: "Insulin Lispro", dosage: "Per pump settings", frequency: "Via Tandem t:slim X2" },
+      { name: "Levothyroxine", dosage: "50 mcg", frequency: "Once daily" },
+    ],
   },
   {
     mrn: "MRN-0004",
     firstName: "Daniel",
     lastName: "Okafor",
     dob: "1966-01-30",
+    enrolledAt: "2026-06-15",
     type: "TYPE_2",
     diagnosisCode: "E11.9",
     cgmDevice: "DEXCOM",
     insulinDeliveryDevice: "MDI",
     profile: null, // not connected yet — no history
+    medications: [
+      { name: "Metformin", dosage: "500 mg", frequency: "Twice daily" },
+      { name: "Semaglutide", dosage: "1 mg", frequency: "Once weekly (injection)" },
+      { name: "Lisinopril", dosage: "10 mg", frequency: "Once daily" },
+    ],
   },
 ];
 
@@ -161,12 +184,14 @@ async function main() {
         primaryDiagnosisCode: p.diagnosisCode,
         cgmDevice: p.cgmDevice,
         insulinDeliveryDevice: p.insulinDeliveryDevice,
+        enrolledAt: new Date(p.enrolledAt),
       },
       create: {
         mrn: p.mrn,
         firstName: p.firstName,
         lastName: p.lastName,
         dateOfBirth: new Date(p.dob),
+        enrolledAt: new Date(p.enrolledAt),
         diabetesType: p.type,
         primaryDiagnosisCode: p.diagnosisCode,
         cgmDevice: p.cgmDevice,
@@ -176,6 +201,18 @@ async function main() {
 
     if (p.profile) {
       await seedGlucoseHistory(patient.id, p.profile);
+    }
+
+    const hasMedications = await prisma.medication.findFirst({ where: { patientId: patient.id } });
+    if (!hasMedications) {
+      await prisma.medication.createMany({
+        data: p.medications.map((m) => ({
+          patientId: patient.id,
+          name: m.name,
+          dosage: m.dosage,
+          frequency: m.frequency,
+        })),
+      });
     }
   }
   console.log(`Seeded ${PATIENTS.length} sample patients with synthetic glucose history.`);

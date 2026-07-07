@@ -108,6 +108,10 @@ model Patient {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
+  // Date the patient was enrolled in the practice's CGM monitoring program
+  // (not necessarily the same as when their record was created here).
+  enrolledAt DateTime @db.Date
+
   // Primary ICD-10 diagnosis code, e.g. "E10.9" (Type 1) or "E11.9" (Type 2).
   primaryDiagnosisCode  String
   cgmDevice             CgmDevice?
@@ -118,8 +122,28 @@ model Patient {
   syncDays          SyncDay[]
   auditLogs         AuditLog[]
   cdcesCallSessions CdcesCallSession[]
+  medications       Medication[]
 
   @@map("patients")
+}
+
+// Read-only for now (see docs) — a staff-facing add/edit workflow can follow
+// once medication reconciliation is actually needed.
+model Medication {
+  id        String   @id @default(cuid())
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  name      String
+  dosage    String?
+  frequency String?
+  active    Boolean  @default(true)
+  startedAt DateTime? @db.Date
+
+  createdAt DateTime @default(now())
+
+  @@index([patientId])
+  @@map("medications")
 }
 
 model DexcomConnection {

@@ -23,19 +23,49 @@ const PUMP_CONFIG: Record<InsulinDeliveryDevice, { label: string; Icon: IconComp
   MDI: { label: "MDI", Icon: MdiIcon, color: "var(--status-neutral)" },
 };
 
-function DeviceBadge({ label, Icon, color }: { label: string; Icon: IconComponent; color: string }) {
+function DeviceBadge({
+  label,
+  Icon,
+  color,
+  size = "sm",
+}: {
+  label: string;
+  Icon: IconComponent;
+  color: string;
+  size?: "sm" | "md";
+}) {
+  const badgeSize = size === "md" ? "h-7 w-7" : "h-5 w-5";
+  const iconSize = size === "md" ? 17 : 13;
+  const textSize = size === "md" ? "text-sm" : "text-xs";
+
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-neutral-700 dark:text-neutral-300">
+    <span className={`inline-flex items-center gap-1.5 ${textSize} text-neutral-700 dark:text-neutral-300`}>
       <span
-        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-white"
+        className={`inline-flex ${badgeSize} shrink-0 items-center justify-center rounded-full text-white`}
         style={{ backgroundColor: color }}
         aria-hidden
       >
-        <Icon width={13} height={13} />
+        <Icon width={iconSize} height={iconSize} />
       </span>
       {label}
     </span>
   );
+}
+
+export function CgmDeviceBadge({ device, size }: { device: CgmDevice | null; size?: "sm" | "md" }) {
+  if (!device) return <span className="text-xs text-neutral-400 dark:text-neutral-500">Not documented</span>;
+  return <DeviceBadge {...CGM_CONFIG[device]} size={size} />;
+}
+
+export function PumpDeviceBadge({
+  device,
+  size,
+}: {
+  device: InsulinDeliveryDevice | null;
+  size?: "sm" | "md";
+}) {
+  if (!device) return <span className="text-xs text-neutral-400 dark:text-neutral-500">Not documented</span>;
+  return <DeviceBadge {...PUMP_CONFIG[device]} size={size} />;
 }
 
 export function DeviceBadges({

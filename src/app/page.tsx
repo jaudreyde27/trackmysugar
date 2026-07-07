@@ -7,8 +7,6 @@ import { DiagnosisDisplay } from "@/components/diagnosis-display";
 import { R30Badge } from "@/components/r30-badge";
 import { TimeInRangeBreakdown } from "@/components/time-in-range-breakdown";
 
-const R30_ATTENTION_THRESHOLD = 16;
-
 function formatRelative(date: Date | null): string | null {
   if (!date) return null;
   const diffMs = Date.now() - date.getTime();
@@ -29,7 +27,7 @@ function formatExactDate(date: Date | null): string {
   });
 }
 
-function formatSyncDate(date: Date | null): string | null {
+function formatShortDate(date: Date | null): string | null {
   if (!date) return null;
   return new Date(date).toLocaleDateString([], {
     year: "numeric",
@@ -42,16 +40,6 @@ export default async function HomePage() {
   const session = await verifySession();
   const roster = await getPatientRoster();
 
-  const needsAttention = roster.filter(
-    (p) => p.connectionState === "ERROR" || p.r30Count < R30_ATTENTION_THRESHOLD
-  ).length;
-  const connected = roster.filter((p) => p.connectionState === "ACTIVE").length;
-  const withData = roster.filter((p) => p.stats.readingCount > 0);
-  const avgTir =
-    withData.length > 0
-      ? withData.reduce((sum, p) => sum + p.stats.percentInRange, 0) / withData.length
-      : null;
-
   return (
     <div className="flex min-h-screen flex-col">
       <TopNav staffName={session.staffUser.name} />
@@ -60,22 +48,8 @@ export default async function HomePage() {
           Practice overview
         </h1>
 
-        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <StatTile label="Patients" value={String(roster.length)} />
-          <StatTile label="Dexcom connected" value={`${connected}/${roster.length}`} />
-          <StatTile
-            label="Avg time in range (14d)"
-            value={avgTir != null ? `${avgTir.toFixed(0)}%` : "—"}
-          />
-          <StatTile
-            label="Needs attention"
-            value={String(needsAttention)}
-            tone={needsAttention > 0 ? "critical" : "good"}
-          />
-        </div>
-
-        <div className="mt-8 overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
-          <table className="w-full min-w-[1100px] text-left text-sm">
+        <div className="mt-6 overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+          <table className="w-full min-w-[1200px] text-left text-sm">
             <thead className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
               <tr>
                 <th className="px-4 py-3 font-medium">Patient</th>
@@ -85,6 +59,7 @@ export default async function HomePage() {
                 <th className="px-4 py-3 font-medium">Time in range</th>
                 <th className="px-4 py-3 font-medium">Avg glucose (14d)</th>
                 <th className="px-4 py-3 font-medium">Last sync</th>
+                <th className="px-4 py-3 font-medium">Enrolled</th>
                 <th className="px-4 py-3 font-medium">Last CDCES touchpoint</th>
               </tr>
             </thead>
@@ -135,10 +110,13 @@ export default async function HomePage() {
                             : undefined
                         }
                       >
-                        {formatSyncDate(patient.lastSyncSuccessAt) ?? "Never"}
+                        {formatShortDate(patient.lastSyncSuccessAt) ?? "Never"}
                         {patient.connectionState === "ERROR" && " ⚠"}
                       </span>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-neutral-500 dark:text-neutral-400">
+                    {formatShortDate(patient.enrolledAt) ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-neutral-500 dark:text-neutral-400">
                     <span title={formatExactDate(patient.lastCdcesTouchpointAt)}>
@@ -149,7 +127,7 @@ export default async function HomePage() {
               ))}
               {roster.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-neutral-500">
+                  <td colSpan={9} className="px-4 py-8 text-center text-neutral-500">
                     No patients yet.
                   </td>
                 </tr>
@@ -158,35 +136,6 @@ export default async function HomePage() {
           </table>
         </div>
       </main>
-    </div>
-  );
-}
-
-function StatTile({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: "good" | "critical";
-}) {
-  return (
-    <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-      <div className="text-xs text-neutral-500 dark:text-neutral-400">{label}</div>
-      <div
-        className="mt-1 text-2xl font-semibold tabular-nums"
-        style={{
-          color:
-            tone === "critical"
-              ? "var(--status-critical)"
-              : tone === "good"
-                ? "var(--status-good)"
-                : undefined,
-        }}
-      >
-        {value}
-      </div>
     </div>
   );
 }

@@ -4,14 +4,15 @@ import { verifySession } from "@/lib/auth/dal";
 import { getPatientDetail } from "@/lib/data/patient-detail";
 import { logAudit } from "@/lib/audit";
 import { TopNav } from "@/components/top-nav";
-import { StreakTicker } from "@/components/streak-ticker";
 import { StreakCalendar } from "@/components/streak-calendar";
 import { ConnectionStatusBadge } from "@/components/connection-status-badge";
 import { TimeInRangeBreakdown } from "@/components/time-in-range-breakdown";
 import { GlucoseTrendChart } from "@/components/glucose-trend-chart";
-import { DeviceBadges } from "@/components/device-badges";
+import { CgmDeviceBadge, PumpDeviceBadge } from "@/components/device-badges";
 import { DiagnosisDisplay } from "@/components/diagnosis-display";
-import { R30Badge } from "@/components/r30-badge";
+import { DaysTransmittedCounter } from "@/components/days-transmitted-counter";
+import { PumpPlaceholder } from "@/components/pump-placeholder";
+import { MedicationsList } from "@/components/medications-list";
 import { disconnectDexcom } from "@/app/actions/dexcom";
 
 function diabetesTypeLabel(type: "TYPE_1" | "TYPE_2") {
@@ -62,38 +63,17 @@ export default async function PatientDetailPage({
           ← Practice overview
         </Link>
 
-        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-              {patient.lastName}, {patient.firstName}
-            </h1>
-            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-              MRN {patient.mrn} · DOB {formatDate(patient.dateOfBirth)} ·{" "}
-              {diabetesTypeLabel(patient.diabetesType)}
-            </p>
-            <div className="mt-2">
-              <DiagnosisDisplay code={patient.primaryDiagnosisCode} />
-            </div>
-            <div className="mt-2">
-              <DeviceBadges
-                cgmDevice={patient.cgmDevice}
-                insulinDeliveryDevice={patient.insulinDeliveryDevice}
-              />
-            </div>
-          </div>
-          <div className="flex gap-6 text-right">
-            <div>
-              <div className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                R30
-              </div>
-              <R30Badge count={patient.r30Count} />
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                Current streak
-              </div>
-              <StreakTicker streak={patient.streak} size="lg" />
-            </div>
+        <div>
+          <h1 className="mt-2 text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+            {patient.lastName}, {patient.firstName}
+          </h1>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            MRN {patient.mrn} · DOB {formatDate(patient.dateOfBirth)} ·{" "}
+            {diabetesTypeLabel(patient.diabetesType)} · Enrolled{" "}
+            {formatDate(patient.enrolledAt)}
+          </p>
+          <div className="mt-2">
+            <DiagnosisDisplay code={patient.primaryDiagnosisCode} />
           </div>
         </div>
 
@@ -163,30 +143,38 @@ export default async function PatientDetailPage({
         </section>
 
         <section className="mt-6">
-          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-            Days with data transmitted
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">CGM</h2>
+            <CgmDeviceBadge device={patient.cgmDevice} size="md" />
+          </div>
           <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-            <StreakCalendar
-              days={patient.syncDayHistory.map((d) => ({
-                date: new Date(d.date).toISOString().slice(0, 10),
-                hasData: d.hasData,
-              }))}
-            />
+            <DaysTransmittedCounter count={patient.r30Count} />
+            <div className="mt-4">
+              <StreakCalendar
+                days={patient.syncDayHistory.map((d) => ({
+                  date: new Date(d.date).toISOString().slice(0, 10),
+                  hasData: d.hasData,
+                }))}
+              />
+            </div>
+            <div className="mt-4">
+              <GlucoseTrendChart
+                readings={patient.recentReadings.map((r) => ({
+                  systemTime: new Date(r.systemTime).toISOString(),
+                  value: r.value,
+                }))}
+              />
+            </div>
           </div>
         </section>
 
         <section className="mt-6">
-          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-            Glucose trend (last 3 days)
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Pump</h2>
+            <PumpDeviceBadge device={patient.insulinDeliveryDevice} size="md" />
+          </div>
           <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-            <GlucoseTrendChart
-              readings={patient.recentReadings.map((r) => ({
-                systemTime: new Date(r.systemTime).toISOString(),
-                value: r.value,
-              }))}
-            />
+            <PumpPlaceholder />
           </div>
         </section>
 
@@ -235,6 +223,15 @@ export default async function PatientDetailPage({
           <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
             Based on {primaryStats.readingCount} readings in the last 14 days.
           </p>
+        </section>
+
+        <section className="mt-6">
+          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+            Active medications
+          </h2>
+          <div className="mt-2">
+            <MedicationsList medications={patient.activeMedications} />
+          </div>
         </section>
       </main>
     </div>

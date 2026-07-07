@@ -1,10 +1,11 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { getGlucoseStatsForPatient, type GlucoseStats } from "@/lib/data/glucose-stats";
-import { computeCurrentStreak, getR30Count } from "@/lib/sync/streak";
+import { getR30Count } from "@/lib/sync/streak";
 import { getLastTouchpointForPatient } from "@/lib/data/cdces";
+import { getActiveMedications } from "@/lib/data/medications";
 import type { ConnectionState } from "@/lib/data/roster";
-import type { CgmDevice, InsulinDeliveryDevice } from "@/generated/prisma/client";
+import type { CgmDevice, InsulinDeliveryDevice, Medication } from "@/generated/prisma/client";
 
 export type PatientDetail = {
   id: string;
@@ -12,6 +13,7 @@ export type PatientDetail = {
   firstName: string;
   lastName: string;
   dateOfBirth: Date;
+  enrolledAt: Date;
   diabetesType: "TYPE_1" | "TYPE_2";
   primaryDiagnosisCode: string;
   cgmDevice: CgmDevice | null;
@@ -22,12 +24,12 @@ export type PatientDetail = {
   lastSyncAttemptAt: Date | null;
   lastSyncSuccessAt: Date | null;
   lastError: string | null;
-  streak: number;
   r30Count: number;
   lastCdcesTouchpointAt: Date | null;
   statsByWindow: Record<7 | 14 | 30, GlucoseStats>;
   recentReadings: Array<{ systemTime: Date; value: number }>;
   syncDayHistory: Array<{ date: Date; hasData: boolean }>;
+  activeMedications: Medication[];
 };
 
 const CHART_WINDOW_DAYS = 3;
@@ -43,7 +45,7 @@ export async function getPatientDetail(patientId: string): Promise<PatientDetail
   const since = new Date(Date.now() - CHART_WINDOW_DAYS * 24 * 60 * 60 * 1000);
   const calendarSince = new Date(Date.now() - CALENDAR_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
-  const [stats7, stats14, stats30, recentReadings, syncDays, streak, r30Count, lastCdcesTouchpointAt] =
+  const [stats7, stats14, stats30, recentReadings, syncDays, r30Count, lastCdcesTouchpointAt, activeMedications] =
     await Promise.all([
       getGlucoseStatsForPatient(patientId, 7),
       getGlucoseStatsForPatient(patientId, 14),
@@ -58,9 +60,9 @@ export async function getPatientDetail(patientId: string): Promise<PatientDetail
         orderBy: { date: "asc" },
         select: { date: true, hasData: true },
       }),
-      computeCurrentStreak(patientId),
       getR30Count(patientId),
       getLastTouchpointForPatient(patientId),
+      getActiveMedications(patientId),
     ]);
 
   return {
@@ -69,6 +71,7 @@ export async function getPatientDetail(patientId: string): Promise<PatientDetail
     firstName: patient.firstName,
     lastName: patient.lastName,
     dateOfBirth: patient.dateOfBirth,
+    enrolledAt: patient.enrolledAt,
     diabetesType: patient.diabetesType,
     primaryDiagnosisCode: patient.primaryDiagnosisCode,
     cgmDevice: patient.cgmDevice,
@@ -79,11 +82,11 @@ export async function getPatientDetail(patientId: string): Promise<PatientDetail
     lastSyncAttemptAt: patient.dexcomConnection?.lastSyncAttemptAt ?? null,
     lastSyncSuccessAt: patient.dexcomConnection?.lastSyncSuccessAt ?? null,
     lastError: patient.dexcomConnection?.lastError ?? null,
-    streak,
     r30Count,
     lastCdcesTouchpointAt,
     statsByWindow: { 7: stats7, 14: stats14, 30: stats30 },
     recentReadings,
     syncDayHistory: syncDays,
+    activeMedications,
   };
 }

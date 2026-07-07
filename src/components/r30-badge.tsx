@@ -3,10 +3,10 @@ import { R30_WINDOW_DAYS } from "@/lib/sync/streak";
 // 16-of-30-day threshold mirrors the common CGM remote-monitoring billing
 // requirement (e.g. CPT 99454) — not a hard rule, just a reasonable default
 // for flagging patients whose data is too sparse to review confidently.
-const ADEQUATE_THRESHOLD = 16;
+export const R30_ADEQUATE_THRESHOLD = 16;
 
-function r30Color(count: number): string {
-  if (count >= ADEQUATE_THRESHOLD) return "var(--status-good)";
+export function r30Color(count: number): string {
+  if (count >= R30_ADEQUATE_THRESHOLD) return "var(--status-good)";
   if (count > 0) return "var(--status-warning)";
   return "var(--status-critical)";
 }
