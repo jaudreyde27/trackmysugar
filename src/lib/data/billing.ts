@@ -80,34 +80,24 @@ export async function getCptEligibilityForMonth(
   };
 }
 
-export type ComplianceTone = "compliant" | "in_progress" | "non_compliant";
-
 export type ComplianceMonth = {
   year: number;
   month: number;
   monthLabel: string;
-  statusLabel: string;
   daysOfReadings: number;
-  tone: ComplianceTone;
 };
-
-export function complianceToneFor(daysOfReadings: number): { tone: ComplianceTone; label: string } {
-  if (daysOfReadings >= CPT_99454_MIN_DAYS) return { tone: "compliant", label: "Very Compliant" };
-  if (daysOfReadings > 0) return { tone: "in_progress", label: "In Progress" };
-  return { tone: "non_compliant", label: "Non-compliant" };
-}
 
 const MONTH_LABELS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ] as const;
 
-// Current month, last month, and two months ago — for the summary card's
-// Compliance History mini panel.
+// Current month and last month only — a plain days-of-readings count for
+// each, for the summary card's Compliance History mini panel.
 export async function getComplianceHistory(patientId: string): Promise<ComplianceMonth[]> {
   const now = new Date();
   const months: Array<{ year: number; month: number }> = [];
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
     months.push({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 });
   }
@@ -115,14 +105,11 @@ export async function getComplianceHistory(patientId: string): Promise<Complianc
   return Promise.all(
     months.map(async ({ year, month }) => {
       const daysOfReadings = await getDaysOfReadingsForMonth(patientId, year, month);
-      const { tone, label: statusLabel } = complianceToneFor(daysOfReadings);
       return {
         year,
         month,
         monthLabel: `${MONTH_LABELS[month - 1]} ${year}`,
-        statusLabel,
         daysOfReadings,
-        tone,
       };
     })
   );

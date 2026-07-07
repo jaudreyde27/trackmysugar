@@ -1,4 +1,3 @@
-import { StatusPill } from "@/components/status-pill";
 import type { ComplianceMonth } from "@/lib/data/billing";
 import type { InsurancePolicy } from "@/generated/prisma/client";
 
@@ -73,25 +72,19 @@ export function PatientSummaryCard({
         </div>
       </div>
 
-      <div className="w-full lg:w-64">
+      <div className="w-full lg:w-56">
         <div className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
           Compliance history
         </div>
-        <ul className="mt-2 space-y-2">
+        <ul className="mt-2 space-y-1.5">
           {complianceHistory.map((m, i) => (
-            <li
-              key={`${m.year}-${m.month}`}
-              className="flex items-center justify-between rounded-md border border-neutral-200 px-2.5 py-1.5 dark:border-neutral-800"
-            >
-              <div>
-                <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                  {i === 0 ? "Current month" : i === 1 ? "Last month" : "2 months ago"}
-                </div>
-                <div className="text-xs text-neutral-400 dark:text-neutral-500">
-                  {m.daysOfReadings} day{m.daysOfReadings === 1 ? "" : "s"} of readings
-                </div>
-              </div>
-              <StatusPill label={m.statusLabel} tone={m.tone} />
+            <li key={`${m.year}-${m.month}`} className="flex items-center justify-between text-sm">
+              <span className="text-neutral-600 dark:text-neutral-400">
+                {i === 0 ? "This month" : "Last month"}
+              </span>
+              <span className="tabular-nums text-neutral-800 dark:text-neutral-200">
+                {m.daysOfReadings} day{m.daysOfReadings === 1 ? "" : "s"}
+              </span>
             </li>
           ))}
         </ul>
