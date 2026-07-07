@@ -92,7 +92,13 @@ function SortHeader({
   );
 }
 
-export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
+export function PatientRosterTable({
+  roster,
+  onSelectPatient,
+}: {
+  roster: RosterRow[];
+  onSelectPatient?: (patient: RosterRow) => void;
+}) {
   const [sort, setSort] = useState<SortState>(null);
 
   function toggleSort(column: SortColumn) {
@@ -130,7 +136,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
   }, [roster, sort]);
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+    <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
         <thead className="border-b border-neutral-200 text-xs dark:border-neutral-800">
           <tr>
@@ -159,10 +165,19 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
         </thead>
         <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
           {sorted.map((patient) => (
-            <tr key={patient.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
+            <tr
+              key={patient.id}
+              onClick={() => onSelectPatient?.(patient)}
+              className={
+                onSelectPatient
+                  ? "cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/50"
+                  : "hover:bg-neutral-50 dark:hover:bg-neutral-900/50"
+              }
+            >
               <td className="px-3 py-3">
                 <Link
                   href={`/patients/${patient.id}`}
+                  onClick={(e) => e.stopPropagation()}
                   className="font-medium text-neutral-900 hover:underline dark:text-neutral-100"
                 >
                   {patient.lastName}, {patient.firstName}

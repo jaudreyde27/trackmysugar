@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAttemptNavigate } from "@/components/unsaved-guard";
 
-const TABS = ["Readings", "Devices", "Medications", "Monitoring", "Messaging", "Docs"] as const;
+const TABS = ["Readings", "Trends", "Devices", "Medications", "Monitoring", "Messaging", "Docs"] as const;
 export type PatientTab = (typeof TABS)[number];
 
 export function PatientTabs({

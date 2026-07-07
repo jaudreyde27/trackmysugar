@@ -19,6 +19,7 @@ import { PatientTabs } from "@/components/patient-tabs";
 import { NotesPanel, type NoteHistoryRow } from "@/components/notes-panel";
 import { CallSection } from "@/components/call-section";
 import { MonitoringTab, type MonitoringRow } from "@/components/monitoring-tab";
+import { TrendsPanel } from "@/components/trends-panel";
 import { UnsavedGuardProvider } from "@/components/unsaved-guard";
 import { generateNotesSummary } from "@/lib/ai/notes-summary";
 import { disconnectDexcom } from "@/app/actions/dexcom";
@@ -222,6 +223,14 @@ export default async function PatientDetailPage({
                       <NotesPanel patientId={patient.id} history={noteHistory} aiSummary={notesSummary} />
                     </div>
                   </div>
+                ),
+                Trends: (
+                  <TrendsPanel
+                    readings={patient.recentReadings.map((r) => ({
+                      systemTime: new Date(r.systemTime).toISOString(),
+                      value: r.value,
+                    }))}
+                  />
                 ),
                 Devices: (
                   <div className="space-y-4">

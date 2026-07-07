@@ -1,7 +1,8 @@
 import { verifySession } from "@/lib/auth/dal";
 import { getPatientRoster } from "@/lib/data/roster";
 import { TopNav } from "@/components/top-nav";
-import { PatientRosterTable, type RosterRow } from "@/components/patient-roster-table";
+import { PracticeWorklist } from "@/components/practice-worklist";
+import type { RosterRow } from "@/components/patient-roster-table";
 
 export default async function HomePage() {
   const session = await verifySession();
@@ -52,7 +53,7 @@ export default async function HomePage() {
         </h1>
 
         <div className="mt-6">
-          <PatientRosterTable roster={rows} />
+          <PracticeWorklist roster={rows} />
         </div>
       </main>
     </div>
