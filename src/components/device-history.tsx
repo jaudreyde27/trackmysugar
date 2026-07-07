@@ -57,7 +57,7 @@ export function DeviceHistorySection({ history }: { history: DeviceHistoryEntry[
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <div>
-        <div className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+        <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
           CGM
         </div>
         <div className="mt-2">
@@ -68,7 +68,7 @@ export function DeviceHistorySection({ history }: { history: DeviceHistoryEntry[
         </div>
       </div>
       <div>
-        <div className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+        <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
           Pump
         </div>
         <div className="mt-2">

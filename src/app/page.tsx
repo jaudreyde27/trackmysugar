@@ -33,7 +33,7 @@ export default async function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <TopNav staffName={session.staffUser.name} />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">
+      <main className="mx-auto w-full max-w-[1800px] flex-1 px-6 py-8">
         <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
           {PRACTICE_NAME} — Practice Overview
         </h1>

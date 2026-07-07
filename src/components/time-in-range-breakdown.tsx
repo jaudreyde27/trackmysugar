@@ -48,12 +48,20 @@ const SEGMENTS: Array<{
 // percentage — the number is the accessible source of truth (some segment
 // colors don't clear contrast on their own), the abbreviation underneath
 // means color is never the only way to tell buckets apart.
-export function TimeInRangeBreakdown({ stats }: { stats: GlucoseStats }) {
+export function TimeInRangeBreakdown({
+  stats,
+  size = "md",
+}: {
+  stats: GlucoseStats;
+  size?: "sm" | "md";
+}) {
   const hasData = stats.readingCount > 0;
+  const circleSize = size === "sm" ? "h-8 w-8" : "h-10 w-10";
+  const gap = size === "sm" ? "gap-1.5" : "gap-2";
 
   return (
     <div
-      className="flex gap-2"
+      className={`flex ${gap}`}
       role="img"
       aria-label={SEGMENTS.map((s) => `${s.label}: ${Math.round(Number(stats[s.key]))}%`).join(
         ", "
@@ -62,7 +70,7 @@ export function TimeInRangeBreakdown({ stats }: { stats: GlucoseStats }) {
       {SEGMENTS.map((seg) => (
         <div key={seg.abbr} className="flex flex-col items-center gap-1" title={seg.label}>
           <div
-            className={`flex h-10 w-10 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums ${
+            className={`flex ${circleSize} items-center justify-center rounded-full text-[10px] font-semibold tabular-nums ${
               hasData ? "" : "bg-neutral-200 dark:bg-neutral-800"
             }`}
             style={

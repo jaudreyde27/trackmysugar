@@ -131,28 +131,28 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
 
   return (
     <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
-      <table className="w-full min-w-[1300px] text-left text-sm">
+      <table className="w-full text-left text-sm">
         <thead className="border-b border-neutral-200 text-xs dark:border-neutral-800">
           <tr>
-            <th className={`px-4 py-3 ${HEADER_CLASS}`}>Patient</th>
-            <th className="px-4 py-3">
+            <th className={`px-3 py-3 ${HEADER_CLASS}`}>Patient</th>
+            <th className="px-3 py-3">
               <SortHeader label="Provider" column="provider" sort={sort} onSort={toggleSort} />
             </th>
-            <th className={`px-4 py-3 ${HEADER_CLASS}`}>Primary diagnosis</th>
-            <th className={`px-4 py-3 ${HEADER_CLASS}`}>Sensors</th>
-            <th className="px-4 py-3">
+            <th className={`px-3 py-3 ${HEADER_CLASS}`}>Primary diagnosis</th>
+            <th className={`px-3 py-3 ${HEADER_CLASS}`}>Sensors</th>
+            <th className="px-3 py-3">
               <SortHeader label="R30" column="r30" sort={sort} onSort={toggleSort} />
             </th>
-            <th className={`px-4 py-3 ${HEADER_CLASS}`}>Time in range</th>
-            <th className="px-4 py-3">
+            <th className={`px-3 py-3 ${HEADER_CLASS}`}>Time in range</th>
+            <th className="px-3 py-3">
               <SortHeader label="Glycemia risk zone" column="riskZone" sort={sort} onSort={toggleSort} />
             </th>
-            <th className={`px-4 py-3 ${HEADER_CLASS}`}>Avg glucose (14d)</th>
-            <th className={`px-4 py-3 ${HEADER_CLASS}`}>Last sync</th>
-            <th className="px-4 py-3">
+            <th className={`px-3 py-3 ${HEADER_CLASS}`}>Avg glucose (14d)</th>
+            <th className={`px-3 py-3 ${HEADER_CLASS}`}>Last sync</th>
+            <th className="px-3 py-3">
               <SortHeader label="Enrolled" column="enrolled" sort={sort} onSort={toggleSort} />
             </th>
-            <th className="px-4 py-3">
+            <th className="px-3 py-3">
               <SortHeader label="Last CDCES touchpoint" column="touchpoint" sort={sort} onSort={toggleSort} />
             </th>
           </tr>
@@ -160,7 +160,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
         <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
           {sorted.map((patient) => (
             <tr key={patient.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
-              <td className="px-4 py-3">
+              <td className="px-3 py-3">
                 <Link
                   href={`/patients/${patient.id}`}
                   className="font-medium text-neutral-900 hover:underline dark:text-neutral-100"
@@ -175,35 +175,35 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
                 </div>
                 <div className="text-xs text-neutral-500 dark:text-neutral-400">{patient.mrn}</div>
               </td>
-              <td className="px-4 py-3 text-neutral-700 dark:text-neutral-300">
+              <td className="px-3 py-3 text-neutral-700 dark:text-neutral-300">
                 {patient.primaryProviderName ?? (
                   <span className="text-neutral-400 dark:text-neutral-500">Unassigned</span>
                 )}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-3 py-3">
                 <DiagnosisDisplay code={patient.primaryDiagnosisCode} />
               </td>
-              <td className="px-4 py-3">
+              <td className="px-3 py-3">
                 <DeviceBadges
                   cgmDevice={patient.cgmDevice}
                   insulinDeliveryDevice={patient.insulinDeliveryDevice}
                 />
               </td>
-              <td className="px-4 py-3">
+              <td className="px-3 py-3">
                 <R30Badge count={patient.r30Count} />
               </td>
-              <td className="w-56 px-4 py-3">
-                <TimeInRangeBreakdown stats={patient.stats} />
+              <td className="px-3 py-3">
+                <TimeInRangeBreakdown stats={patient.stats} size="sm" />
               </td>
-              <td className="px-4 py-3">
+              <td className="px-3 py-3">
                 <GriZoneBadge score={patient.griScore} />
               </td>
-              <td className="px-4 py-3 tabular-nums text-neutral-700 dark:text-neutral-300">
+              <td className="px-3 py-3 tabular-nums text-neutral-700 dark:text-neutral-300">
                 {patient.stats.averageGlucose != null
                   ? `${patient.stats.averageGlucose.toFixed(0)} mg/dL`
                   : "—"}
               </td>
-              <td className="px-4 py-3 text-neutral-500 dark:text-neutral-400">
+              <td className="px-3 py-3 text-neutral-500 dark:text-neutral-400">
                 {patient.connectionState === "NOT_CONNECTED" || patient.connectionState === "REVOKED" ? (
                   <span>Not connected</span>
                 ) : (
@@ -217,10 +217,10 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
                   </span>
                 )}
               </td>
-              <td className="px-4 py-3 text-neutral-500 dark:text-neutral-400">
+              <td className="px-3 py-3 text-neutral-500 dark:text-neutral-400">
                 {formatShortDate(patient.enrolledAt) ?? "—"}
               </td>
-              <td className="px-4 py-3 text-neutral-500 dark:text-neutral-400">
+              <td className="px-3 py-3 text-neutral-500 dark:text-neutral-400">
                 {formatDateTime(patient.lastCdcesTouchpointAt) ?? "None logged"}
               </td>
             </tr>

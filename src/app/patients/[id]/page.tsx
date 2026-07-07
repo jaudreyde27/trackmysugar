@@ -41,6 +41,14 @@ function formatDateTime(date: Date | null): string {
   });
 }
 
+function formatDaysSince(date: Date | null): string | null {
+  if (!date) return null;
+  const days = Math.floor((Date.now() - date.getTime()) / (24 * 60 * 60 * 1000));
+  if (days <= 0) return "Last call: today";
+  if (days === 1) return "Last call: 1 day ago";
+  return `Last call: ${days} days ago`;
+}
+
 export default async function PatientDetailPage({
   params,
 }: {
@@ -126,9 +134,16 @@ export default async function PatientDetailPage({
 
         <section className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-              CDCES touchpoints
-            </h2>
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+                CDCES touchpoints
+              </h2>
+              {formatDaysSince(patient.lastCdcesTouchpointAt) && (
+                <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                  {formatDaysSince(patient.lastCdcesTouchpointAt)}
+                </span>
+              )}
+            </div>
             {!activeCallSession && (
               <form action={boundStartCall}>
                 <button

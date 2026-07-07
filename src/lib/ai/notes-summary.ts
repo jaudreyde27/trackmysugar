@@ -11,12 +11,41 @@ function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
 }
 
+// Keyword-based approximation of "themes discussed" for the no-LLM fallback.
+// Crude compared to real synthesis, but far better than just restating the
+// most recent visit date — a clinician glancing at this wants to know what
+// keeps coming up across calls, not just when they happened.
+const THEME_KEYWORDS: Array<{ label: string; pattern: RegExp }> = [
+  { label: "sensor site/adhesion issues", pattern: /sensor (site|placement|adhes\w*)/i },
+  { label: "pump settings", pattern: /pump (setting|start|therapy)/i },
+  { label: "carb counting", pattern: /carb[- ]count\w*/i },
+  { label: "hypoglycemia", pattern: /hypoglycemi\w*|\blows?\b/i },
+  { label: "hyperglycemia/highs", pattern: /hyperglycemi\w*|postprandial spike/i },
+  { label: "time in range trends", pattern: /time in range/i },
+  { label: "travel/schedule changes", pattern: /travel|time zone/i },
+  { label: "medication/dosing adjustments", pattern: /medication|insulin dos\w*|basal rate/i },
+  { label: "diet/food log review", pattern: /food log|\bdiet\b/i },
+];
+
+function extractThemes(sessions: NotesSummaryInput[], max = 2): string[] {
+  const counts = new Map<string, number>();
+  for (const s of sessions) {
+    for (const { label, pattern } of THEME_KEYWORDS) {
+      if (pattern.test(s.notes)) counts.set(label, (counts.get(label) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, max)
+    .map(([label]) => label);
+}
+
 // Deterministic summary used when ANTHROPIC_API_KEY isn't configured, or if
-// the API call fails — the notes section must not break either way. It can't
-// truly synthesize themes without an LLM, so it sticks to visit count and
-// span rather than inventing a synthesis. Always exactly two complete
-// sentences — never embeds raw note text, which is what previously forced
-// an ellipsis mid-sentence.
+// the API call fails — the notes section must not break either way. Themes
+// come from simple keyword matching rather than real synthesis, but still
+// gives a clinician something more useful than just a visit count. Always
+// exactly two complete sentences — never embeds raw note text, which is
+// what previously forced an ellipsis mid-sentence.
 function ruleBasedSummary(sessions: NotesSummaryInput[]): string {
   if (sessions.length === 0) return "No visit notes on file yet.";
 
@@ -28,7 +57,13 @@ function ruleBasedSummary(sessions: NotesSummaryInput[]): string {
       ? `${formatDate(first.startedAt)} – ${formatDate(last.startedAt)}`
       : formatDate(first.startedAt);
 
-  return `${sessions.length} visit${sessions.length === 1 ? "" : "s"} on file in total (${span}). Most recent visit was on ${formatDate(last.startedAt)}.`;
+  const themes = extractThemes(sessions);
+  const secondSentence =
+    themes.length > 0
+      ? `Recurring topics: ${themes.join(" and ")}.`
+      : `Most recent visit was on ${formatDate(last.startedAt)}.`;
+
+  return `${sessions.length} visit${sessions.length === 1 ? "" : "s"} on file in total (${span}). ${secondSentence}`;
 }
 
 function buildPrompt(sessions: NotesSummaryInput[]): string {
