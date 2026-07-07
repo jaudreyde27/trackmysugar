@@ -28,7 +28,8 @@ export type DexcomEgv = {
 };
 
 export type DexcomEgvResponse = {
-  unit: string;
-  rateUnit: string;
-  egvs: DexcomEgv[];
+  recordType: string;
+  recordVersion: string;
+  userId: string;
+  records: DexcomEgv[];
 };

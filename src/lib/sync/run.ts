@@ -37,7 +37,7 @@ export async function runDailySync(): Promise<DailySyncSummary> {
 
     try {
       const accessToken = await getValidAccessToken(connection);
-      const { egvs } = await fetchEgvs(accessToken, start, end);
+      const { records: egvs } = await fetchEgvs(accessToken, start, end);
 
       for (const egv of egvs) {
         await prisma.glucoseReading.upsert({
