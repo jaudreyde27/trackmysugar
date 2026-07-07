@@ -12,6 +12,30 @@ const DAY_RANGE_OPTIONS = [7, 14, 30, 90] as const;
 type DayRange = (typeof DAY_RANGE_OPTIONS)[number];
 const DEFAULT_DAY_RANGE: DayRange = 14;
 
+const ICON_CLASS = "h-4 w-4";
+const VIEW_ICONS = {
+  chart: (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className={ICON_CLASS} aria-hidden>
+      <path d="M2.5 16.5V3.5M2.5 16.5H17.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4.5 13l3-4 2.5 2.5L14.5 6l2.5 3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  list: (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className={ICON_CLASS} aria-hidden>
+      <path d="M7 5.5h10M7 10h10M7 14.5h10" strokeLinecap="round" />
+      <circle cx={3.2} cy={5.5} r={0.9} fill="currentColor" stroke="none" />
+      <circle cx={3.2} cy={10} r={0.9} fill="currentColor" stroke="none" />
+      <circle cx={3.2} cy={14.5} r={0.9} fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  doc: (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className={ICON_CLASS} aria-hidden>
+      <path d="M5.5 2.5h6l3 3v12h-9z" strokeLinejoin="round" />
+      <path d="M11.5 2.5v3h3M7.5 10h5M7.5 13h5" strokeLinecap="round" />
+    </svg>
+  ),
+} as const;
+
 function StatTile({ label, value, highlighted }: { label: string; value: string; highlighted?: boolean }) {
   return (
     <div
@@ -124,11 +148,11 @@ export function ChartsPanel({
         <div className="flex items-center gap-1">
           {(
             [
-              { mode: "chart" as const, label: "Chart" },
-              { mode: "list" as const, label: "List" },
-              { mode: "doc" as const, label: "Doc" },
+              { mode: "chart" as const, label: "Chart", icon: VIEW_ICONS.chart },
+              { mode: "list" as const, label: "List", icon: VIEW_ICONS.list },
+              { mode: "doc" as const, label: "Doc", icon: VIEW_ICONS.doc },
             ]
-          ).map(({ mode, label }) => (
+          ).map(({ mode, label, icon }) => (
             <button
               key={mode}
               type="button"
@@ -137,11 +161,11 @@ export function ChartsPanel({
               title={`${label} view`}
               className={
                 mode === viewMode
-                  ? "rounded-md border border-neutral-300 bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
-                  : "rounded-md border border-transparent px-2 py-1 text-xs font-medium text-neutral-400 hover:border-neutral-200 hover:text-neutral-600 dark:hover:border-neutral-800 dark:hover:text-neutral-300"
+                  ? "rounded-md border border-neutral-300 bg-neutral-100 p-1.5 text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                  : "rounded-md border border-transparent p-1.5 text-neutral-400 hover:border-neutral-200 hover:text-neutral-600 dark:hover:border-neutral-800 dark:hover:text-neutral-300"
               }
             >
-              {label}
+              {icon}
             </button>
           ))}
           <button
@@ -149,10 +173,14 @@ export function ChartsPanel({
             onClick={() => setShowEvents((v) => !v)}
             className={
               showEvents
-                ? "ml-2 rounded-md bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
-                : "ml-2 rounded-md px-2 py-1 text-xs font-medium text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
+                ? "ml-2 inline-flex items-center gap-1 rounded-md bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                : "ml-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300"
             }
           >
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className="h-3.5 w-3.5" aria-hidden>
+              <rect x={3} y={4.5} width={14} height={12} rx={1.5} />
+              <path d="M3 8h14M7 2.5v3M13 2.5v3" strokeLinecap="round" />
+            </svg>
             Display: Events
           </button>
         </div>
@@ -226,6 +254,7 @@ export function ChartsPanel({
           onClick={() => setShowDistribution((v) => !v)}
           labelExpanded="Hide reading distribution"
           labelCollapsed="Show reading distribution"
+          variant="plain"
         />
         {showDistribution && (
           <div className="mt-2">

@@ -136,6 +136,7 @@ export function NotesPanel({
           onClick={() => setShowAdditionalInfo((v) => !v)}
           labelExpanded="Hide additional info"
           labelCollapsed="Additional info"
+          variant="plain"
         />
         {showAdditionalInfo && (
           <div className="mt-2 space-y-3 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
@@ -193,6 +194,7 @@ export function NotesPanel({
           onClick={() => setShowTemplates((v) => !v)}
           labelExpanded="Hide templates"
           labelCollapsed="Templates"
+          variant="plain"
         />
         {showTemplates && (
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -275,6 +277,7 @@ export function NotesPanel({
                   onClick={() => setShowAllHistory((v) => !v)}
                   labelExpanded="Show less"
                   labelCollapsed={`View full history (${sorted.length})`}
+                  variant="plain"
                 />
               </div>
             )}
