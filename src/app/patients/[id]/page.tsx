@@ -20,6 +20,7 @@ import { CallTimer } from "@/components/call-timer";
 import { CallNotesEditor } from "@/components/call-notes-editor";
 import { generateNotesSummary } from "@/lib/ai/notes-summary";
 import { startCdcesCall, endCdcesCall } from "@/app/actions/cdces";
+import { disconnectDexcom } from "@/app/actions/dexcom";
 
 function diabetesTypeLabel(type: "TYPE_1" | "TYPE_2") {
   return type === "TYPE_1" ? "Type 1 diabetes" : "Type 2 diabetes";
@@ -51,11 +52,14 @@ function formatDaysSince(date: Date | null): string | null {
 
 export default async function PatientDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ dexcomError?: string }>;
 }) {
   const session = await verifySession();
   const { id } = await params;
+  const { dexcomError } = await searchParams;
 
   const patient = await getPatientDetail(id);
   if (!patient) notFound();
@@ -63,6 +67,7 @@ export default async function PatientDetailPage({
   await logAudit({ staffUserId: session.staffUser.id, patientId: id, action: "PATIENT_VIEWED" });
 
   const boundStartCall = startCdcesCall.bind(null, patient.id);
+  const boundDisconnectDexcom = disconnectDexcom.bind(null, patient.id);
   const activeCallSession = patient.activeCallSession;
 
   const pastCallSessions = patient.recentCallSessions.filter((s) => s.id !== activeCallSession?.id);
@@ -122,6 +127,12 @@ export default async function PatientDetailPage({
             <PumpDeviceBadge device={patient.insulinDeliveryDevice} size="md" />
           </div>
         </div>
+
+        {dexcomError && (
+          <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+            Dexcom connection failed. Please try again.
+          </div>
+        )}
 
         <section className="mt-6">
           <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
@@ -222,7 +233,7 @@ export default async function PatientDetailPage({
         <section className="mt-6">
           <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">CGM</h2>
           <div className="mt-2 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <CgmStatusLine
                 cgmDevice={patient.cgmDevice}
                 connectionState={patient.connectionState}
@@ -231,7 +242,27 @@ export default async function PatientDetailPage({
                 r30Count={patient.r30Count}
                 environment={patient.environment}
               />
-              <DaysTransmittedCounter count={patient.r30Count} />
+              <div className="flex items-center gap-3">
+                <DaysTransmittedCounter count={patient.r30Count} />
+                {patient.cgmDevice &&
+                  (patient.connectionState === "ACTIVE" ? (
+                    <form action={boundDisconnectDexcom}>
+                      <button
+                        type="submit"
+                        className="text-xs font-medium text-neutral-500 underline hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+                      >
+                        Disconnect
+                      </button>
+                    </form>
+                  ) : (
+                    <a
+                      href={`/api/dexcom/connect/${patient.id}`}
+                      className="rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+                    >
+                      {patient.connectionState === "ERROR" ? "Reconnect to Dexcom" : "Connect to Dexcom"}
+                    </a>
+                  ))}
+              </div>
             </div>
             <div className="mt-3">
               <StreakCalendar
