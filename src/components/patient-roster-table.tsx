@@ -164,7 +164,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
             <tr
               key={patient.id}
               onClick={() => router.push(`/patients/${patient.id}`)}
-              className="cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/50"
+              className="cursor-pointer transition-colors hover:bg-accent-subtle"
             >
               <td className="px-3 py-3">
                 <Link

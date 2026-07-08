@@ -1,5 +1,4 @@
 import type { ComplianceMonth } from "@/lib/data/billing";
-import type { InsurancePolicy } from "@prisma/client";
 
 function formatDate(date: Date | string | null): string {
   if (!date) return "—";
@@ -25,56 +24,56 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function PatientSummaryCard({
+  firstName,
+  lastName,
   sex,
-  clinicalNotes,
+  dateOfBirth,
   monitoringMinutesThisMonth,
-  daysOfReadingsThisMonth,
-  mostRecentReadingAt,
   consentDate,
   primaryProviderName,
   careManagerName,
-  primaryInsurance,
+  lastCdcesTouchpointAt,
   phone,
   email,
   complianceHistory,
 }: {
+  firstName: string;
+  lastName: string;
   sex: string | null;
-  clinicalNotes: string | null;
+  dateOfBirth: Date;
   monitoringMinutesThisMonth: number;
-  daysOfReadingsThisMonth: number;
-  mostRecentReadingAt: Date | null;
   consentDate: Date | null;
   primaryProviderName: string | null;
   careManagerName: string | null;
-  primaryInsurance: InsurancePolicy | null;
+  lastCdcesTouchpointAt: Date | null;
   phone: string | null;
   email: string | null;
   complianceHistory: ComplianceMonth[];
 }) {
   return (
     <div className="grid gap-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800 lg:grid-cols-[1fr_auto]">
-      <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
-        <Field label="Gender" value={sex} />
-        <Field label="Time spent monitoring" value={`${formatMinutes(monitoringMinutesThisMonth)} min`} />
-        <Field label="Provider" value={primaryProviderName} />
-        <Field label="Phone" value={phone} />
-
-        <Field label="Days of readings this month" value={daysOfReadingsThisMonth} />
-        <Field label="Care manager" value={careManagerName} />
-        <Field label="Email" value={email} />
-        <Field label="Most recent reading" value={formatDate(mostRecentReadingAt)} />
-
-        <Field label="RPM consent date" value={formatDate(consentDate)} />
-        <Field label="Insurance carrier" value={primaryInsurance?.payerName ?? null} />
-        <Field label="Insurance member ID" value={primaryInsurance?.memberId ?? null} />
-        <div className="col-span-2 sm:col-span-4">
-          <Field label="Clinical notes" value={clinicalNotes} />
+      <div className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
+        <div className="space-y-3">
+          <Field label="Patient name" value={`${lastName}, ${firstName}`} />
+          <Field label="Gender" value={sex} />
+          <Field label="DOB" value={formatDate(dateOfBirth)} />
+          <Field label="Provider" value={primaryProviderName} />
+        </div>
+        <div className="space-y-3">
+          <Field label="Phone" value={phone} />
+          <Field label="Email" value={email} />
+        </div>
+        <div className="space-y-3">
+          <Field label="RPM consent date" value={formatDate(consentDate)} />
+          <Field label="RPM CDCES" value={careManagerName} />
+          <Field label="Last live contact" value={formatDate(lastCdcesTouchpointAt)} />
+          <Field label="Time monitoring this month" value={`${formatMinutes(monitoringMinutesThisMonth)} min`} />
         </div>
       </div>
 
       <div className="w-full lg:w-56">
         <div className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-          Compliance history
+          Sensor transmission history
         </div>
         <ul className="mt-2 space-y-1.5">
           {complianceHistory.map((m, i) => (

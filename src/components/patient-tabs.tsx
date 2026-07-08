@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useAttemptNavigate } from "@/components/unsaved-guard";
 
 const TABS = ["Readings", "Trends", "Devices", "Medications", "Monitoring", "Messaging", "Docs"] as const;
@@ -13,11 +13,25 @@ export function PatientTabs({
 }) {
   const [active, setActive] = useState<PatientTab>("Readings");
   const attemptNavigate = useAttemptNavigate();
+  const pendingScrollY = useRef<number | null>(null);
 
   function handleTabClick(tab: PatientTab) {
     if (tab === active) return;
+    pendingScrollY.current = window.scrollY;
     attemptNavigate(() => setActive(tab));
   }
+
+  // Switching tabs swaps in a panel of a different height, which can shrink
+  // the page below the current scroll offset and make the browser clamp
+  // scrollY back up — reads as an unwanted jump to the top. Restore the
+  // pre-switch position (synchronously, before paint) so the page appears
+  // to stay put.
+  useLayoutEffect(() => {
+    if (pendingScrollY.current != null) {
+      window.scrollTo(0, pendingScrollY.current);
+      pendingScrollY.current = null;
+    }
+  }, [active]);
 
   return (
     <div>

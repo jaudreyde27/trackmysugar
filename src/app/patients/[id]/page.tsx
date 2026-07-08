@@ -89,9 +89,7 @@ export default async function PatientDetailPage({
     subscriberName: p.subscriberName,
   }));
 
-  const primaryInsurance = patient.insurancePolicies.find((p) => p.rank === "PRIMARY") ?? null;
   const hasPump = patient.insulinDeliveryDevice != null && patient.insulinDeliveryDevice !== "MDI";
-  const daysOfReadingsThisMonth = patient.complianceHistory[0]?.daysOfReadings ?? 0;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -105,6 +103,10 @@ export default async function PatientDetailPage({
           <h1 className="mt-2 text-xl font-semibold text-neutral-900 dark:text-neutral-100">
             {patient.lastName}, {patient.firstName}
           </h1>
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <CgmDeviceBadge device={patient.cgmDevice} />
+            <PumpDeviceBadge device={patient.insulinDeliveryDevice} />
+          </div>
           <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
             MRN {patient.mrn} · DOB {formatDate(patient.dateOfBirth)} ·{" "}
             {diabetesTypeLabel(patient.diabetesType)} · Enrolled{" "}
@@ -119,15 +121,15 @@ export default async function PatientDetailPage({
           <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Summary</h2>
           <div className="mt-2">
             <PatientSummaryCard
+              firstName={patient.firstName}
+              lastName={patient.lastName}
               sex={patient.sex}
-              clinicalNotes={patient.clinicalNotes}
+              dateOfBirth={patient.dateOfBirth}
               monitoringMinutesThisMonth={patient.monitoringMinutesThisMonth}
-              daysOfReadingsThisMonth={daysOfReadingsThisMonth}
-              mostRecentReadingAt={patient.mostRecentReadingAt}
               consentDate={patient.consentDate}
               primaryProviderName={patient.primaryProviderName}
               careManagerName={patient.careManagerName}
-              primaryInsurance={primaryInsurance}
+              lastCdcesTouchpointAt={patient.lastCdcesTouchpointAt}
               phone={patient.contact.phoneMobile ?? patient.contact.phoneHome ?? patient.contact.phoneWork}
               email={patient.contact.email}
               complianceHistory={patient.complianceHistory}

@@ -103,25 +103,39 @@ export function ContactAndInsuranceCard({
           {expanded && (
             <div className="mt-3 space-y-4 border-t border-neutral-200 pt-3 text-sm dark:border-neutral-800">
               {(otherPhones.length > 0 || contact.email || addressParts.length > 0) && (
-                <div className="space-y-1.5">
-                  {otherPhones.map((p) => (
-                    <div key={p.type} className="flex items-center gap-2">
-                      <span className="w-14 text-xs text-neutral-500 dark:text-neutral-400">
-                        {PHONE_LABELS[p.type]}
-                      </span>
-                      <span className="text-neutral-700 dark:text-neutral-300">{p.number}</span>
-                    </div>
-                  ))}
-                  {contact.email && (
-                    <div className="text-neutral-700 dark:text-neutral-300">{contact.email}</div>
-                  )}
-                  {addressParts.length > 0 && (
-                    <div className="text-neutral-700 dark:text-neutral-300">
-                      {addressParts.map((line, i) => (
-                        <div key={i}>{line}</div>
+                <div className="overflow-hidden rounded-md border border-neutral-200 dark:border-neutral-800">
+                  <table className="w-full">
+                    <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
+                      {otherPhones.map((p) => (
+                        <tr key={p.type}>
+                          <td className="w-28 bg-neutral-50 px-3 py-2 align-top text-xs text-neutral-500 dark:bg-neutral-900/50 dark:text-neutral-400">
+                            {PHONE_LABELS[p.type]}
+                          </td>
+                          <td className="px-3 py-2 text-neutral-800 dark:text-neutral-200">{p.number}</td>
+                        </tr>
                       ))}
-                    </div>
-                  )}
+                      {contact.email && (
+                        <tr>
+                          <td className="w-28 bg-neutral-50 px-3 py-2 align-top text-xs text-neutral-500 dark:bg-neutral-900/50 dark:text-neutral-400">
+                            Email
+                          </td>
+                          <td className="px-3 py-2 text-neutral-800 dark:text-neutral-200">{contact.email}</td>
+                        </tr>
+                      )}
+                      {addressParts.length > 0 && (
+                        <tr>
+                          <td className="w-28 bg-neutral-50 px-3 py-2 align-top text-xs text-neutral-500 dark:bg-neutral-900/50 dark:text-neutral-400">
+                            Address
+                          </td>
+                          <td className="px-3 py-2 text-neutral-800 dark:text-neutral-200">
+                            {addressParts.map((line, i) => (
+                              <div key={i}>{line}</div>
+                            ))}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               )}
 
