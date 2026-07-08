@@ -14,7 +14,7 @@ function isAuthorized(request: NextRequest): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export async function POST(request: NextRequest) {
+async function handle(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -22,3 +22,9 @@ export async function POST(request: NextRequest) {
   const summary = await runDailySync();
   return NextResponse.json(summary);
 }
+
+// Vercel Cron issues a GET with the CRON_SECRET as a bearer token
+// automatically; POST stays available for manual/external schedulers
+// (GitHub Actions, a plain cron job, etc.) that call it directly.
+export const GET = handle;
+export const POST = handle;

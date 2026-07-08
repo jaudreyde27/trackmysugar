@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "NODE_USE_ENV_PROXY=1 next start",
     "lint": "eslint",
+    "postinstall": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "sync:daily": "NODE_USE_ENV_PROXY=1 tsx scripts/daily-sync.ts"
   },

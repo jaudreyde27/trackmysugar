@@ -14,7 +14,9 @@ This processes protected health information (PHI). Read [`docs/HIPAA.md`](docs/H
 before deploying anywhere near real patient data — this codebase gives you
 the technical controls (encryption, audit logging, access control); HIPAA
 compliance also requires organizational steps (a signed BAA with your host,
-policies, workforce training) that no codebase can provide on its own.
+policies, workforce training) that no codebase can provide on its own. For a
+live preview deployment with synthetic data only, see
+[`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ## Stack
 
