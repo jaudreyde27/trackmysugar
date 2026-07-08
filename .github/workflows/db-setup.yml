@@ -17,6 +17,11 @@ on:
 jobs:
   db-setup:
     runs-on: ubuntu-latest
+    # prisma.config.ts requires DATABASE_URL at load time, and `npm install`
+    # triggers `prisma generate` via postinstall — so this has to be set for
+    # every step, not just the migrate/seed ones.
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,11 +33,7 @@ jobs:
 
       - name: Apply pending migrations
         run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Load seed/demo data
         if: ${{ inputs.run_seed }}
         run: npm run db:seed
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
