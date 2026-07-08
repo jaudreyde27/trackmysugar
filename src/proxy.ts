@@ -11,7 +11,11 @@ const PUBLIC_PATHS = ["/login"];
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/api/dexcom/callback") || pathname.startsWith("/api/cron/")) {
+  if (
+    pathname.startsWith("/api/dexcom/callback") ||
+    pathname.startsWith("/api/cron/") ||
+    pathname.startsWith("/enroll/")
+  ) {
     return NextResponse.next();
   }
 

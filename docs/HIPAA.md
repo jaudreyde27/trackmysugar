@@ -37,9 +37,17 @@ patient data touches this system.
   connect/disconnect action, with the acting staff user, patient, action,
   timestamp, and source IP. This is the record you'd pull for a HIPAA
   accounting-of-disclosures request or a security investigation.
-- **CSRF protection on the Dexcom OAuth flow**: the `state` parameter is
-  HMAC-signed and time-limited (10 minutes, `src/lib/dexcom/state.ts`), so a
-  forged callback can't attach stolen tokens to the wrong patient.
+- **Patient-authorized Dexcom connections, not staff-authorized**: the
+  clinician app never has a "Connect to Dexcom" action — a patient's own
+  Dexcom account can only be authorized by the patient themselves, via a
+  signed, patient-specific, time-limited link (`src/lib/dexcom/state.ts`,
+  7-day expiry) that staff generate and send. The signed token is the sole
+  proof of authorization for the public `/enroll/[token]` page and the
+  OAuth callback — both are intentionally reachable without a staff
+  session, since the patient completing the flow never has one. The HMAC
+  signature prevents a forged or altered token from attaching stolen
+  tokens to the wrong patient, the same role a CSRF `state` param plays in
+  a same-origin flow.
 - **Login throttling**: naive in-memory rate limiting on the login action
   (`src/lib/auth/rate-limit.ts`) — see the caveat below before relying on this
   in a multi-instance deployment.

@@ -64,8 +64,12 @@ live preview deployment with synthetic data only, see
    npm run dev
    ```
 
-   Visit `http://localhost:3000`, sign in, and connect a patient's Dexcom
-   sandbox account from their patient page.
+   Visit `http://localhost:3000` and sign in. Staff never authorize a
+   patient's Dexcom account directly — from a patient's page, click "Copy
+   enrollment link" to generate a signed, patient-specific link (valid 7
+   days), then open it yourself (or send it to a real patient) to complete
+   the Dexcom sandbox authorization at `/enroll/[token]`, a public page that
+   needs no staff login.
 
 ## Daily sync
 

@@ -23,6 +23,7 @@ import { TrendsPanel } from "@/components/trends-panel";
 import { UnsavedGuardProvider } from "@/components/unsaved-guard";
 import { generateNotesSummary } from "@/lib/ai/notes-summary";
 import { disconnectDexcom } from "@/app/actions/dexcom";
+import { EnrollmentLinkButton } from "@/components/enrollment-link-button";
 
 function diabetesTypeLabel(type: "TYPE_1" | "TYPE_2") {
   return type === "TYPE_1" ? "Type 1 diabetes" : "Type 2 diabetes";
@@ -35,14 +36,11 @@ function formatDate(date: Date | null): string {
 
 export default async function PatientDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ dexcomError?: string }>;
 }) {
   const session = await verifySession();
   const { id } = await params;
-  const { dexcomError } = await searchParams;
 
   if (!session.staffUser.organizationId) notFound();
 
@@ -117,12 +115,6 @@ export default async function PatientDetailPage({
           </div>
         </div>
 
-        {dexcomError && (
-          <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-            Dexcom connection failed. Please try again.
-          </div>
-        )}
-
         <section className="mt-6">
           <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Summary</h2>
           <div className="mt-2">
@@ -182,12 +174,10 @@ export default async function PatientDetailPage({
                                   </button>
                                 </form>
                               ) : (
-                                <a
-                                  href={`/api/dexcom/connect/${patient.id}`}
-                                  className="rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
-                                >
-                                  {patient.connectionState === "ERROR" ? "Reconnect to Dexcom" : "Connect to Dexcom"}
-                                </a>
+                                <EnrollmentLinkButton
+                                  patientId={patient.id}
+                                  isError={patient.connectionState === "ERROR"}
+                                />
                               ))}
                           </div>
                         </div>
