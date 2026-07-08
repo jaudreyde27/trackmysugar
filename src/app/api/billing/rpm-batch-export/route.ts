@@ -22,8 +22,10 @@ export async function GET(request: NextRequest) {
   const organizationId = session.staffUser.organizationId;
 
   const now = new Date();
-  const year = Number(request.nextUrl.searchParams.get("year")) || now.getFullYear();
-  const month = Number(request.nextUrl.searchParams.get("month")) || now.getMonth() + 1;
+  const period = request.nextUrl.searchParams.get("period");
+  const [periodYear, periodMonth] = period ? period.split("-").map(Number) : [undefined, undefined];
+  const year = periodYear || Number(request.nextUrl.searchParams.get("year")) || now.getFullYear();
+  const month = periodMonth || Number(request.nextUrl.searchParams.get("month")) || now.getMonth() + 1;
 
   const batchSummary = await getBillingBatchForPeriod(organizationId, year, month);
   if (!batchSummary) {

@@ -175,3 +175,23 @@ export async function getBillingBatchForPeriod(
     exclusionCount,
   };
 }
+
+export type BillingBatchPeriod = {
+  year: number;
+  month: number;
+};
+
+// Every period this org has a generated batch for, newest first — drives
+// the "download a previous month" dropdown (only periods with an actual
+// batch are listable, since the export route 404s otherwise).
+export async function listBillingBatchPeriods(organizationId: string): Promise<BillingBatchPeriod[]> {
+  const batches = await prisma.billingBatch.findMany({
+    where: { organizationId },
+    select: { periodStart: true },
+    orderBy: { periodStart: "desc" },
+  });
+  return batches.map((b) => ({
+    year: b.periodStart.getUTCFullYear(),
+    month: b.periodStart.getUTCMonth() + 1,
+  }));
+}

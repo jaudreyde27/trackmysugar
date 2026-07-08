@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifySession } from "@/lib/auth/dal";
 import { getBillingRosterForMonth, estimatedDollarsFor } from "@/lib/data/billing";
-import { getBillingBatchForPeriod } from "@/lib/data/rpm-billing-batch";
+import { getBillingBatchForPeriod, listBillingBatchPeriods } from "@/lib/data/rpm-billing-batch";
 import { generateMonthlyBatch } from "@/app/actions/rpm-billing-batch";
 import { TopNav } from "@/components/top-nav";
 import { BillingTable } from "@/components/billing-table";
@@ -28,6 +28,7 @@ export default async function BillingPage({
 
   const rows = await getBillingRosterForMonth(session.staffUser.organizationId, year, month);
   const rpmBatch = await getBillingBatchForPeriod(session.staffUser.organizationId, year, month);
+  const rpmBatchPeriods = await listBillingBatchPeriods(session.staffUser.organizationId);
   const boundGenerateMonthlyBatch = generateMonthlyBatch.bind(null, year, month);
 
   const billedThisMonth = rows
@@ -173,6 +174,35 @@ export default async function BillingPage({
                 className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast hover:bg-accent-hover"
               >
                 Generate Monthly Batch
+              </button>
+            </form>
+          )}
+
+          {rpmBatchPeriods.length > 0 && (
+            <form
+              action="/api/billing/rpm-batch-export"
+              className="mt-3 flex flex-wrap items-center gap-2 border-t border-neutral-200 pt-3 dark:border-neutral-800"
+            >
+              <label className="text-xs text-neutral-500 dark:text-neutral-400" htmlFor="rpm-batch-period">
+                Download a generated batch
+              </label>
+              <select
+                id="rpm-batch-period"
+                name="period"
+                defaultValue={`${year}-${String(month).padStart(2, "0")}`}
+                className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
+              >
+                {rpmBatchPeriods.map((p) => (
+                  <option key={`${p.year}-${p.month}`} value={`${p.year}-${String(p.month).padStart(2, "0")}`}>
+                    {MONTH_NAMES[p.month - 1]} {p.year}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="submit"
+                className="rounded-md border border-neutral-300 px-2.5 py-1.5 text-sm text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+              >
+                Download CSV
               </button>
             </form>
           )}
