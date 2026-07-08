@@ -9,6 +9,14 @@ const nextConfig: NextConfig = {
   // every route if left on, so it's skipped when building on Vercel (which
   // sets the VERCEL env var automatically).
   ...(process.env.VERCEL ? {} : { output: "standalone" as const }),
+
+  // Next's serverless function bundler only auto-detects Prisma's engine
+  // binary when it lives at the default node_modules/.prisma/client path.
+  // schema.prisma points it at src/generated/prisma instead, so the binary
+  // gets silently dropped from the deployed function unless told explicitly.
+  outputFileTracingIncludes: {
+    "/**": ["./src/generated/prisma/**/*"],
+  },
 };
 
 export default nextConfig;
