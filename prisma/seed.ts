@@ -336,11 +336,20 @@ const PLACEHOLDER_CONSENT_TEMPLATE =
 async function main() {
   const org = await prisma.organization.upsert({
     where: { id: DEFAULT_ORG_ID },
-    update: { name: "Alpine Endocrine Associates", rpmConsentTemplate: PLACEHOLDER_CONSENT_TEMPLATE },
+    update: {
+      name: "Alpine Endocrine Associates",
+      rpmConsentTemplate: PLACEHOLDER_CONSENT_TEMPLATE,
+      billingProviderName: "Alpine Endocrine Associates",
+      billingProviderNpi: "1922334455",
+      billingProviderTaxId: "84-1234567",
+    },
     create: {
       id: DEFAULT_ORG_ID,
       name: "Alpine Endocrine Associates",
       rpmConsentTemplate: PLACEHOLDER_CONSENT_TEMPLATE,
+      billingProviderName: "Alpine Endocrine Associates",
+      billingProviderNpi: "1922334455",
+      billingProviderTaxId: "84-1234567",
     },
   });
 
@@ -600,6 +609,7 @@ async function main() {
     {
       careManager: string;
       supervisingProvider: string;
+      supervisingProviderNpi: string;
       consentDaysAgo: number;
       cpt99453DaysAgo: number | null;
       clinicalNotes: string;
@@ -609,6 +619,7 @@ async function main() {
     "MRN-0001": {
       careManager: "Jordan Blake, RN",
       supervisingProvider: "Dr. Sarah Chen",
+      supervisingProviderNpi: "1356792418",
       consentDaysAgo: 520,
       cpt99453DaysAgo: 515,
       clinicalNotes: "Stable on current pump settings; monitor for adhesive site irritation.",
@@ -617,6 +628,7 @@ async function main() {
     "MRN-0002": {
       careManager: "Jordan Blake, RN",
       supervisingProvider: "Dr. Michael Torres",
+      supervisingProviderNpi: "1487293651",
       consentDaysAgo: 680,
       cpt99453DaysAgo: 675,
       clinicalNotes: "Dual insurance (Medicare secondary) — verify coverage before claim submission.",
@@ -625,6 +637,7 @@ async function main() {
     "MRN-0003": {
       careManager: "Priya Desai, CDCES",
       supervisingProvider: "Dr. Sarah Chen",
+      supervisingProviderNpi: "1356792418",
       consentDaysAgo: 60,
       cpt99453DaysAgo: 58,
       clinicalNotes: "Recently transitioned to Tandem pump; sensor adherence has been inconsistent.",
@@ -633,6 +646,7 @@ async function main() {
     "MRN-0004": {
       careManager: "Priya Desai, CDCES",
       supervisingProvider: "Dr. Michael Torres",
+      supervisingProviderNpi: "1487293651",
       consentDaysAgo: 20,
       cpt99453DaysAgo: null,
       clinicalNotes: "New enrollment — 99453 setup/education visit not yet completed.",
@@ -648,6 +662,7 @@ async function main() {
       data: {
         careManagerName: b.careManager,
         supervisingProviderName: b.supervisingProvider,
+        supervisingProviderNpi: b.supervisingProviderNpi,
         clinicalNotes: b.clinicalNotes,
         sex: b.sex,
         consentDate: new Date(Date.now() - b.consentDaysAgo * 24 * 60 * 60 * 1000),

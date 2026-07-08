@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifySession } from "@/lib/auth/dal";
 import { getBillingRosterForMonth, estimatedDollarsFor } from "@/lib/data/billing";
+import { getBillingBatchForPeriod } from "@/lib/data/rpm-billing-batch";
+import { generateMonthlyBatch } from "@/app/actions/rpm-billing-batch";
 import { TopNav } from "@/components/top-nav";
 import { BillingTable } from "@/components/billing-table";
 import { PrintButton } from "@/components/print-button";
@@ -25,6 +27,8 @@ export default async function BillingPage({
   const month = Number(monthParam) || now.getMonth() + 1;
 
   const rows = await getBillingRosterForMonth(session.staffUser.organizationId, year, month);
+  const rpmBatch = await getBillingBatchForPeriod(session.staffUser.organizationId, year, month);
+  const boundGenerateMonthlyBatch = generateMonthlyBatch.bind(null, year, month);
 
   const billedThisMonth = rows
     .filter((r) => r.status === "billed")
@@ -127,6 +131,51 @@ export default async function BillingPage({
               ${totalBillable.toFixed(0)}
             </div>
           </div>
+        </div>
+
+        <div className="mt-6 rounded-lg border border-neutral-200 px-4 py-3 dark:border-neutral-800">
+          <h2 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
+            Monthly RPM billing batch
+          </h2>
+          <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+            A persisted CMS-1500-ready snapshot for {MONTH_NAMES[month - 1]} {year}, separate from the live
+            eligibility roster below — generate it once billing is ready to submit for this period.
+          </p>
+
+          {rpmBatch ? (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                Generated {rpmBatch.generatedAt.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+                {rpmBatch.generatedByStaffUserName ? ` by ${rpmBatch.generatedByStaffUserName}` : ""} ·{" "}
+                {rpmBatch.lineCount} lines · {rpmBatch.exclusionCount} exclusions
+              </p>
+              <div className="flex items-center gap-2">
+                <a
+                  href={`/api/billing/rpm-batch-export?year=${year}&month=${month}`}
+                  className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast hover:bg-accent-hover"
+                >
+                  ↓ CMS-1500 CSV
+                </a>
+                <form action={boundGenerateMonthlyBatch}>
+                  <button
+                    type="submit"
+                    className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                  >
+                    Regenerate
+                  </button>
+                </form>
+              </div>
+            </div>
+          ) : (
+            <form action={boundGenerateMonthlyBatch} className="mt-3">
+              <button
+                type="submit"
+                className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast hover:bg-accent-hover"
+              >
+                Generate Monthly Batch
+              </button>
+            </form>
+          )}
         </div>
 
         <div className="mt-6">
