@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { verifySession } from "@/lib/auth/dal";
+import { verifySession, assertCdcesPortal } from "@/lib/auth/dal";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { getActiveCallSession, getLastTouchpointForPatient } from "@/lib/data/monitoring";
@@ -12,6 +12,7 @@ import { generateTalkingPoints } from "@/lib/ai/talking-points";
 
 export async function startCdcesCall(patientId: string) {
   const session = await verifySession();
+  assertCdcesPortal(session);
   if (!session.staffUser.organizationId) {
     throw new Error("Patient not found");
   }
@@ -78,6 +79,7 @@ export async function startCdcesCall(patientId: string) {
 
 export async function updateCallNotes(sessionId: string, notes: string) {
   const session = await verifySession();
+  assertCdcesPortal(session);
   if (!session.staffUser.organizationId) return;
 
   await prisma.monitoringSession.updateMany({
@@ -93,6 +95,7 @@ export async function updateCallNotes(sessionId: string, notes: string) {
 
 export async function endCdcesCall(sessionId: string, patientId: string) {
   const session = await verifySession();
+  assertCdcesPortal(session);
   if (!session.staffUser.organizationId) {
     throw new Error("Patient not found");
   }

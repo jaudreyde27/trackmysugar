@@ -35,3 +35,15 @@ export async function requirePlatformAdmin(): Promise<CurrentSession> {
   }
   return session;
 }
+
+// The real authorization boundary for CDCES-only mutations (starting a
+// call, adding a note, logging/removing monitoring time). Hiding the
+// triggering UI for Practice-portal staff is a UX nicety on top of this,
+// not a substitute for it — a server action is callable directly
+// regardless of what's rendered. Call this as the first line of every
+// such action, right after verifySession().
+export function assertCdcesPortal(session: CurrentSession): void {
+  if (session.staffUser.portalType !== "CDCES") {
+    throw new Error("This action requires CDCES access.");
+  }
+}

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { verifySession } from "@/lib/auth/dal";
+import { verifySession, assertCdcesPortal } from "@/lib/auth/dal";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 
@@ -20,6 +20,7 @@ export type AddNoteInput = {
 // compliance history) exactly like a Monitoring-tab manual entry does.
 export async function addNote(patientId: string, input: AddNoteInput) {
   const session = await verifySession();
+  assertCdcesPortal(session);
   if (!session.staffUser.organizationId) {
     throw new Error("Patient not found");
   }

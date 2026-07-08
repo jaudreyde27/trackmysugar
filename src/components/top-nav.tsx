@@ -1,14 +1,21 @@
 import { logout } from "@/app/actions/auth";
 import { GuardedLink } from "@/components/guarded-link";
+import { PracticeSwitcher } from "@/components/practice-switcher";
 
 export function TopNav({
   staffName,
   isPlatformAdmin = false,
   hasOrganization = false,
+  portalType,
+  accessibleOrganizations = [],
+  currentOrganizationId = null,
 }: {
   staffName: string;
   isPlatformAdmin?: boolean;
   hasOrganization?: boolean;
+  portalType?: "PRACTICE" | "CDCES";
+  accessibleOrganizations?: { id: string; name: string }[];
+  currentOrganizationId?: string | null;
 }) {
   return (
     <header className="border-b-2 border-accent bg-white dark:bg-neutral-950">
@@ -18,6 +25,12 @@ export function TopNav({
           TrackMySugar
         </GuardedLink>
         <div className="flex items-center gap-4">
+          {portalType === "CDCES" && (
+            <PracticeSwitcher
+              organizations={accessibleOrganizations}
+              currentOrganizationId={currentOrganizationId}
+            />
+          )}
           {hasOrganization && (
             <GuardedLink
               href="/billing"

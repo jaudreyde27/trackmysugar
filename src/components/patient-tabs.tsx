@@ -8,8 +8,10 @@ export type PatientTab = (typeof TABS)[number];
 
 export function PatientTabs({
   panels,
+  canManage,
 }: {
   panels: Record<PatientTab, React.ReactNode>;
+  canManage: boolean;
 }) {
   const [active, setActive] = useState<PatientTab>("Readings");
   const pendingScrollY = useRef<number | null>(null);
@@ -67,7 +69,7 @@ export function PatientTabs({
             </button>
           ))}
         </div>
-        <ChartReviewTimerControls />
+        {canManage && <ChartReviewTimerControls />}
       </div>
       <div className="py-4">{panels[active]}</div>
     </div>

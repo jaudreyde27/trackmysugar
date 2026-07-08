@@ -38,7 +38,14 @@ export default async function BillingPage({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <TopNav staffName={session.staffUser.name} isPlatformAdmin={session.staffUser.isPlatformAdmin} hasOrganization={!!session.staffUser.organizationId} />
+      <TopNav
+        staffName={session.staffUser.name}
+        isPlatformAdmin={session.staffUser.isPlatformAdmin}
+        hasOrganization={!!session.staffUser.organizationId}
+        portalType={session.staffUser.portalType}
+        accessibleOrganizations={session.accessibleOrganizations}
+        currentOrganizationId={session.staffUser.organizationId}
+      />
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
         <Link href="/" className="text-sm text-neutral-500 hover:underline dark:text-neutral-400">
           ← Practice overview

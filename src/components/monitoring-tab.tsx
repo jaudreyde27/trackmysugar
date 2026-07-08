@@ -41,7 +41,15 @@ function todayDateValue(): string {
 const nowYear = new Date().getFullYear();
 const nowMonth = new Date().getMonth() + 1;
 
-export function MonitoringTab({ patientId, rows }: { patientId: string; rows: MonitoringRow[] }) {
+export function MonitoringTab({
+  patientId,
+  rows,
+  canManage,
+}: {
+  patientId: string;
+  rows: MonitoringRow[];
+  canManage: boolean;
+}) {
   const [year, setYear] = useState(nowYear);
   const [month, setMonth] = useState(nowMonth); // 1-12
 
@@ -151,57 +159,61 @@ export function MonitoringTab({ patientId, rows }: { patientId: string; rows: Mo
         </span>
       </div>
 
-      <div className="mt-4 grid gap-3 rounded-lg border border-neutral-200 p-3 sm:grid-cols-[auto_auto_auto_1fr_auto] sm:items-end dark:border-neutral-800">
-        <label className="text-xs text-neutral-500 dark:text-neutral-400">
-          Date
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="mt-0.5 block rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
-          />
-        </label>
-        <label className="text-xs text-neutral-500 dark:text-neutral-400">
-          Minutes
-          <input
-            type="number"
-            min={0}
-            value={minutes}
-            onChange={(e) => setMinutes(e.target.value)}
-            className="mt-0.5 block w-20 rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
-          />
-        </label>
-        <label className="text-xs text-neutral-500 dark:text-neutral-400">
-          Seconds
-          <input
-            type="number"
-            min={0}
-            max={59}
-            value={seconds}
-            onChange={(e) => setSeconds(e.target.value)}
-            className="mt-0.5 block w-20 rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
-          />
-        </label>
-        <label className="text-xs text-neutral-500 dark:text-neutral-400">
-          Note
-          <input
-            type="text"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Optional"
-            className="mt-0.5 block w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
-          />
-        </label>
-        <button
-          type="button"
-          onClick={() => void handleSave()}
-          disabled={saving}
-          className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast hover:bg-accent-hover disabled:opacity-50"
-        >
-          {saving ? "Saving…" : "+ Save"}
-        </button>
-      </div>
-      {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+      {canManage && (
+        <>
+          <div className="mt-4 grid gap-3 rounded-lg border border-neutral-200 p-3 sm:grid-cols-[auto_auto_auto_1fr_auto] sm:items-end dark:border-neutral-800">
+            <label className="text-xs text-neutral-500 dark:text-neutral-400">
+              Date
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="mt-0.5 block rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
+              />
+            </label>
+            <label className="text-xs text-neutral-500 dark:text-neutral-400">
+              Minutes
+              <input
+                type="number"
+                min={0}
+                value={minutes}
+                onChange={(e) => setMinutes(e.target.value)}
+                className="mt-0.5 block w-20 rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
+              />
+            </label>
+            <label className="text-xs text-neutral-500 dark:text-neutral-400">
+              Seconds
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={seconds}
+                onChange={(e) => setSeconds(e.target.value)}
+                className="mt-0.5 block w-20 rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
+              />
+            </label>
+            <label className="text-xs text-neutral-500 dark:text-neutral-400">
+              Note
+              <input
+                type="text"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Optional"
+                className="mt-0.5 block w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={saving}
+              className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast hover:bg-accent-hover disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "+ Save"}
+            </button>
+          </div>
+          {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
+        </>
+      )}
 
       <div className="mt-4 overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
         <table className="w-full text-sm">
@@ -245,7 +257,7 @@ export function MonitoringTab({ patientId, rows }: { patientId: string; rows: Mo
                   </td>
                   <td className="px-3 py-2 text-neutral-500 dark:text-neutral-400">{row.notes || "—"}</td>
                   <td className="px-3 py-2 text-right">
-                    {row.source === "MANUAL" && (
+                    {canManage && row.source === "MANUAL" && (
                       <button
                         type="button"
                         onClick={() => void handleRemove(row.id)}

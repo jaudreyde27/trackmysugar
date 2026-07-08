@@ -351,12 +351,13 @@ async function main() {
 
   const admin = await prisma.staffUser.upsert({
     where: { email: adminEmail },
-    update: {},
+    update: { portalType: "PRACTICE" },
     create: {
       email: adminEmail,
       passwordHash,
       name: "Practice Admin",
       role: "ADMIN",
+      portalType: "PRACTICE",
       organizationId: org.id,
     },
   });
@@ -383,6 +384,32 @@ async function main() {
   console.log(
     `Platform admin ready: ${platformAdmin.email} (password: ${platformAdminPassword})`
   );
+
+  // CDCES-portal login — the account with call/note/monitoring-logging
+  // capability. Granted access to the seeded org via StaffOrganizationAccess
+  // rather than the organizationId FK, so the practice switcher has
+  // something real to read from once a second practice exists.
+  const cdcesEmail = process.env.SEED_CDCES_EMAIL ?? "cdces@example.com";
+  const cdcesPassword = process.env.SEED_CDCES_PASSWORD ?? "ChangeMe123!";
+  const cdcesPasswordHash = await hash(cdcesPassword, 12);
+
+  const cdces = await prisma.staffUser.upsert({
+    where: { email: cdcesEmail },
+    update: { portalType: "CDCES" },
+    create: {
+      email: cdcesEmail,
+      passwordHash: cdcesPasswordHash,
+      name: "CDCES Clinician",
+      role: "CLINICIAN",
+      portalType: "CDCES",
+    },
+  });
+  await prisma.staffOrganizationAccess.upsert({
+    where: { staffUserId_organizationId: { staffUserId: cdces.id, organizationId: org.id } },
+    update: {},
+    create: { staffUserId: cdces.id, organizationId: org.id },
+  });
+  console.log(`Staff user ready: ${cdces.email} (password: ${cdcesPassword})`);
 
   for (const p of PATIENTS) {
     const patient = await prisma.patient.upsert({

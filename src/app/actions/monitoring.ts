@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { verifySession } from "@/lib/auth/dal";
+import { verifySession, assertCdcesPortal } from "@/lib/auth/dal";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 
@@ -17,6 +17,7 @@ export type AddManualSessionInput = {
 // where time is an optional add-on to a note).
 export async function addManualMonitoringSession(patientId: string, input: AddManualSessionInput) {
   const session = await verifySession();
+  assertCdcesPortal(session);
   if (!session.staffUser.organizationId) {
     throw new Error("Patient not found");
   }
@@ -62,6 +63,7 @@ export async function addManualMonitoringSession(patientId: string, input: AddMa
 // documentation (talking points, visit notes) and stay part of the record.
 export async function removeMonitoringSession(sessionId: string, patientId: string) {
   const session = await verifySession();
+  assertCdcesPortal(session);
   if (!session.staffUser.organizationId) {
     throw new Error("Session not found");
   }

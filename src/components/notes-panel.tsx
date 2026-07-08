@@ -38,10 +38,12 @@ export function NotesPanel({
   patientId,
   history,
   aiSummary,
+  canManage,
 }: {
   patientId: string;
   history: NoteHistoryRow[];
   aiSummary?: string;
+  canManage: boolean;
 }) {
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
   const [showTemplates, setShowTemplates] = useState(true);
@@ -143,6 +145,8 @@ export function NotesPanel({
         </div>
       </div>
 
+      {canManage && (
+      <>
       <div className="px-4 py-3">
         <DisclosureToggle
           expanded={showAdditionalInfo}
@@ -256,6 +260,8 @@ export function NotesPanel({
           {saving ? "Saving…" : "Add Note"}
         </button>
       </div>
+      </>
+      )}
 
       {aiSummary && (
         <div className="border-t border-neutral-200 px-4 py-3 dark:border-neutral-800">

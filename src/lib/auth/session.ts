@@ -29,8 +29,27 @@ export async function createSession(staffUserId: string) {
   const expiresAt = new Date(Date.now() + ABSOLUTE_SESSION_HOURS * 60 * 60 * 1000);
   const { ipAddress, userAgent } = await requestMeta();
 
+  // CDCES-portal staff pick a default active practice once, here, at login
+  // — this is the *only* place a default gets written. getCurrentSession()
+  // computes a fallback in-memory on every request without persisting it,
+  // so a slow parallel request can never race an explicit practice switch
+  // and clobber it back to the default.
+  const staffUser = await prisma.staffUser.findUnique({
+    where: { id: staffUserId },
+    select: { portalType: true },
+  });
+  let selectedOrganizationId: string | null = null;
+  if (staffUser?.portalType === "CDCES") {
+    const firstAccess = await prisma.staffOrganizationAccess.findFirst({
+      where: { staffUserId },
+      orderBy: { organization: { name: "asc" } },
+      select: { organizationId: true },
+    });
+    selectedOrganizationId = firstAccess?.organizationId ?? null;
+  }
+
   await prisma.session.create({
-    data: { staffUserId, tokenHash, expiresAt, ipAddress, userAgent },
+    data: { staffUserId, tokenHash, expiresAt, ipAddress, userAgent, selectedOrganizationId },
   });
 
   const cookieStore = await cookies();
@@ -50,10 +69,18 @@ export type CurrentSession = {
     email: string;
     name: string;
     role: "ADMIN" | "CLINICIAN";
+    portalType: "PRACTICE" | "CDCES";
+    // The *effective* org for this request — a PRACTICE user's fixed home
+    // org, or a CDCES user's currently-selected practice. Every existing
+    // org-scoping call site in the app reads this as "my current tenant,"
+    // never "my fixed home org," so it's safe to overload this way.
     organizationId: string | null;
     organizationName: string | null;
     isPlatformAdmin: boolean;
   };
+  // CDCES-portal only — every practice this user can switch into. Empty
+  // for PRACTICE/platform-admin accounts (nothing to switch between).
+  accessibleOrganizations: { id: string; name: string }[];
 };
 
 // Not React-`cache`-wrapped here because this module is also used outside
@@ -67,7 +94,18 @@ export async function getCurrentSession(): Promise<CurrentSession | null> {
   const tokenHash = hashToken(token);
   const session = await prisma.session.findUnique({
     where: { tokenHash },
-    include: { staffUser: { include: { organization: true } } },
+    include: {
+      staffUser: {
+        include: {
+          organization: true,
+          organizationAccess: {
+            include: { organization: true },
+            orderBy: { organization: { name: "asc" } },
+          },
+        },
+      },
+      selectedOrganization: true,
+    },
   });
 
   if (!session || session.revokedAt || session.expiresAt < new Date()) {
@@ -92,6 +130,34 @@ export async function getCurrentSession(): Promise<CurrentSession | null> {
     data: { lastActiveAt: new Date() },
   });
 
+  const accessibleOrganizations = session.staffUser.organizationAccess.map((a) => ({
+    id: a.organization.id,
+    name: a.organization.name,
+  }));
+
+  let organizationId: string | null;
+  let organizationName: string | null;
+
+  if (session.staffUser.portalType === "CDCES") {
+    // Read-only fallback if the session's selection is missing or no
+    // longer in the access list (e.g. access was revoked mid-session) —
+    // never written back here; only createSession() and switchPractice()
+    // are allowed to persist a selection. organizationAccess is sorted
+    // the same way accessibleOrganizations was derived from it, so index
+    // 0 of either is the same practice.
+    const stillValid =
+      session.selectedOrganizationId != null &&
+      accessibleOrganizations.some((o) => o.id === session.selectedOrganizationId);
+    const effective = stillValid
+      ? session.selectedOrganization
+      : (session.staffUser.organizationAccess[0]?.organization ?? null);
+    organizationId = effective?.id ?? null;
+    organizationName = effective?.name ?? null;
+  } else {
+    organizationId = session.staffUser.organizationId;
+    organizationName = session.staffUser.organization?.name ?? null;
+  }
+
   return {
     sessionId: session.id,
     staffUser: {
@@ -99,10 +165,12 @@ export async function getCurrentSession(): Promise<CurrentSession | null> {
       email: session.staffUser.email,
       name: session.staffUser.name,
       role: session.staffUser.role,
-      organizationId: session.staffUser.organizationId,
-      organizationName: session.staffUser.organization?.name ?? null,
+      portalType: session.staffUser.portalType,
+      organizationId,
+      organizationName,
       isPlatformAdmin: session.staffUser.isPlatformAdmin,
     },
+    accessibleOrganizations,
   };
 }
 

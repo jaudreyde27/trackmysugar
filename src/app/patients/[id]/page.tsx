@@ -49,6 +49,7 @@ export default async function PatientDetailPage({
 
   await logAudit({ staffUserId: session.staffUser.id, patientId: id, action: "PATIENT_VIEWED" });
 
+  const canManage = session.staffUser.portalType === "CDCES";
   const activeCallSession = patient.activeCallSession;
 
   const pastSessions = patient.recentMonitoringSessions.filter((s) => s.id !== activeCallSession?.id);
@@ -90,10 +91,116 @@ export default async function PatientDetailPage({
 
   const hasPump = patient.insulinDeliveryDevice != null && patient.insulinDeliveryDevice !== "MDI";
 
+  const recordSection = (
+    <div className="mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
+      <div>
+        <PatientTabs
+          canManage={canManage}
+          panels={{
+            Readings: (
+              <>
+                <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+                  <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                    <CgmStatusLine
+                      cgmDevice={patient.cgmDevice}
+                      connectionState={patient.connectionState}
+                      lastError={patient.lastError}
+                      lastSyncSuccessAt={patient.lastSyncSuccessAt}
+                      r30Count={patient.r30Count}
+                      environment={patient.environment}
+                    />
+                    <div className="flex items-center gap-3">
+                      <DaysTransmittedCounter count={patient.r30Count} />
+                      {patient.cgmDevice && patient.connectionState !== "ACTIVE" && (
+                        <EnrollmentLinkButton
+                          patientId={patient.id}
+                          isError={patient.connectionState === "ERROR"}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <StreakCalendar
+                      days={patient.syncDayHistory.map((d) => ({
+                        date: new Date(d.date).toISOString().slice(0, 10),
+                        hasData: d.hasData,
+                      }))}
+                    />
+                  </div>
+                  <div className="mt-3">
+                    <ChartsPanel
+                      readings={patient.recentReadings.map((r) => ({
+                        systemTime: new Date(r.systemTime).toISOString(),
+                        value: r.value,
+                      }))}
+                      statsByWindow={patient.statsByWindow}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+                  <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Pump</h3>
+                  <div className="mt-2">
+                    <PumpPlaceholder hasPump={hasPump} />
+                  </div>
+                </div>
+              </>
+            ),
+            Trends: (
+              <TrendsPanel
+                readings={patient.recentReadings.map((r) => ({
+                  systemTime: new Date(r.systemTime).toISOString(),
+                  value: r.value,
+                }))}
+              />
+            ),
+            Devices: (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  <CgmDeviceBadge device={patient.cgmDevice} size="md" />
+                  <PumpDeviceBadge device={patient.insulinDeliveryDevice} size="md" />
+                </div>
+                <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+                  <DeviceHistorySection history={patient.deviceHistory} />
+                </div>
+              </div>
+            ),
+            Medications: <MedicationsList medications={patient.activeMedications} />,
+            "RPM History": (
+              <MonitoringTab patientId={patient.id} rows={monitoringRows} canManage={canManage} />
+            ),
+            Docs: (
+              <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                Document uploads aren&apos;t available yet.
+              </p>
+            ),
+          }}
+        />
+      </div>
+
+      <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+        <CallSection patientId={patient.id} activeCallSession={activeCallSession} canManage={canManage} />
+        <NotesPanel
+          patientId={patient.id}
+          history={noteHistory}
+          aiSummary={notesSummary}
+          canManage={canManage}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <UnsavedGuardProvider>
       <div className="flex min-h-screen flex-col">
-        <TopNav staffName={session.staffUser.name} isPlatformAdmin={session.staffUser.isPlatformAdmin} hasOrganization={!!session.staffUser.organizationId} />
+        <TopNav
+          staffName={session.staffUser.name}
+          isPlatformAdmin={session.staffUser.isPlatformAdmin}
+          hasOrganization={!!session.staffUser.organizationId}
+          portalType={session.staffUser.portalType}
+          accessibleOrganizations={session.accessibleOrganizations}
+          currentOrganizationId={session.staffUser.organizationId}
+        />
         <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
         <GuardedLink href="/" className="text-sm text-neutral-500 hover:underline dark:text-neutral-400">
           ← Practice overview
@@ -144,98 +251,14 @@ export default async function PatientDetailPage({
           </div>
         </section>
 
-        <ChartReviewTimerProvider patientId={patient.id}>
-        <div className="mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
-          <div>
-            <PatientTabs
-              panels={{
-                Readings: (
-                  <>
-                    <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-                      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                        <CgmStatusLine
-                          cgmDevice={patient.cgmDevice}
-                          connectionState={patient.connectionState}
-                          lastError={patient.lastError}
-                          lastSyncSuccessAt={patient.lastSyncSuccessAt}
-                          r30Count={patient.r30Count}
-                          environment={patient.environment}
-                        />
-                        <div className="flex items-center gap-3">
-                          <DaysTransmittedCounter count={patient.r30Count} />
-                          {patient.cgmDevice && patient.connectionState !== "ACTIVE" && (
-                            <EnrollmentLinkButton
-                              patientId={patient.id}
-                              isError={patient.connectionState === "ERROR"}
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-3">
-                        <StreakCalendar
-                          days={patient.syncDayHistory.map((d) => ({
-                            date: new Date(d.date).toISOString().slice(0, 10),
-                            hasData: d.hasData,
-                          }))}
-                        />
-                      </div>
-                      <div className="mt-3">
-                        <ChartsPanel
-                          readings={patient.recentReadings.map((r) => ({
-                            systemTime: new Date(r.systemTime).toISOString(),
-                            value: r.value,
-                          }))}
-                          statsByWindow={patient.statsByWindow}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-                      <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Pump</h3>
-                      <div className="mt-2">
-                        <PumpPlaceholder hasPump={hasPump} />
-                      </div>
-                    </div>
-                  </>
-                ),
-                Trends: (
-                  <TrendsPanel
-                    readings={patient.recentReadings.map((r) => ({
-                      systemTime: new Date(r.systemTime).toISOString(),
-                      value: r.value,
-                    }))}
-                  />
-                ),
-                Devices: (
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap items-center gap-4">
-                      <CgmDeviceBadge device={patient.cgmDevice} size="md" />
-                      <PumpDeviceBadge device={patient.insulinDeliveryDevice} size="md" />
-                    </div>
-                    <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-                      <DeviceHistorySection history={patient.deviceHistory} />
-                    </div>
-                  </div>
-                ),
-                Medications: <MedicationsList medications={patient.activeMedications} />,
-                "RPM History": <MonitoringTab patientId={patient.id} rows={monitoringRows} />,
-                Docs: (
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                    Document uploads aren&apos;t available yet.
-                  </p>
-                ),
-              }}
-            />
-          </div>
-
-          <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-            <CallSection patientId={patient.id} activeCallSession={activeCallSession} />
-            <NotesPanel patientId={patient.id} history={noteHistory} aiSummary={notesSummary} />
-          </div>
-        </div>
-
-        <ChartReviewFloatingPrompt />
-        </ChartReviewTimerProvider>
+        {canManage ? (
+          <ChartReviewTimerProvider patientId={patient.id}>
+            {recordSection}
+            <ChartReviewFloatingPrompt />
+          </ChartReviewTimerProvider>
+        ) : (
+          recordSection
+        )}
         </main>
       </div>
     </UnsavedGuardProvider>

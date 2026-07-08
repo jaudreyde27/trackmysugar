@@ -23,6 +23,16 @@ enum StaffRole {
   CLINICIAN
 }
 
+// Which portal a non-platform-admin staff account lands in. Practice and
+// CDCES share the same routes (roster, patient detail) — this only gates
+// which capabilities render/are permitted, not which URLs exist. A third
+// portal (platform-admin account management) is handled separately via
+// StaffUser.isPlatformAdmin, not this enum.
+enum PortalType {
+  PRACTICE
+  CDCES
+}
+
 enum DiabetesType {
   TYPE_1
   TYPE_2
@@ -110,18 +120,25 @@ model StaffUser {
   email        String    @unique
   passwordHash String
   name         String
-  role         StaffRole @default(CLINICIAN)
-  active       Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  role         StaffRole  @default(CLINICIAN)
+  portalType   PortalType @default(PRACTICE)
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  // Null for platform-admin accounts, which sit above any single clinic and
-  // aren't org staff. `role` (ADMIN/CLINICIAN) is a clinic-scoped permission
-  // and is orthogonal to this — a clinic's own ADMIN never sees platform
-  // admin views regardless of this flag.
+  // Fixed home org for PRACTICE-portal staff — null for platform-admin
+  // accounts (which sit above any single clinic) *and* for CDCES-portal
+  // staff, who instead get one-or-more practices via organizationAccess
+  // below and whichever one is currently active lives on their Session
+  // row. `role` (ADMIN/CLINICIAN) is a separate, clinic-scoped permission,
+  // orthogonal to both portalType and isPlatformAdmin.
   organizationId  String?
   organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   isPlatformAdmin Boolean       @default(false)
+
+  // CDCES-portal staff only — which practices they're allowed to view/act
+  // in. Managed by a future Admin View; seeded directly for now.
+  organizationAccess StaffOrganizationAccess[]
 
   sessions            Session[]
   auditLogs           AuditLog[]
@@ -130,6 +147,22 @@ model StaffUser {
 
   @@index([organizationId])
   @@map("staff_users")
+}
+
+// Many-to-many grant of CDCES-portal staff to practices — what a future
+// Admin View will manage, and what the practice switcher reads from.
+// PRACTICE-portal staff don't use this; they stay on StaffUser.organizationId.
+model StaffOrganizationAccess {
+  id             String   @id @default(cuid())
+  staffUserId    String
+  staffUser      StaffUser    @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+
+  @@unique([staffUserId, organizationId])
+  @@index([organizationId])
+  @@map("staff_organization_access")
 }
 
 // A single clinic/practice using the platform. Single-tenant in practice
@@ -146,8 +179,10 @@ model Organization {
   // renders a clearly-labeled placeholder pending legal/compliance review.
   rpmConsentTemplate String?
 
-  staffUsers StaffUser[]
-  patients   Patient[]
+  staffUsers         StaffUser[]
+  patients           Patient[]
+  staffAccess        StaffOrganizationAccess[]
+  selectedInSessions Session[]
 
   @@map("organizations")
 }
@@ -163,6 +198,13 @@ model Session {
   ipAddress     String?
   userAgent     String?
   revokedAt     DateTime?
+
+  // CDCES-portal only — which of the staff user's accessible practices is
+  // currently active for this session (the practice switcher writes this).
+  // Set once at login and only ever changed by an explicit switch, never
+  // lazily defaulted-and-rewritten on every request.
+  selectedOrganizationId String?
+  selectedOrganization   Organization? @relation(fields: [selectedOrganizationId], references: [id], onDelete: SetNull)
 
   @@index([staffUserId])
   @@map("sessions")

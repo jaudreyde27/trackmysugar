@@ -15,11 +15,15 @@ function formatDateTime(date: Date): string {
 export function CallSection({
   patientId,
   activeCallSession,
+  canManage,
 }: {
   patientId: string;
   activeCallSession: { id: string; startedAt: Date | null; notes: string; talkingPoints: string | null } | null;
+  canManage: boolean;
 }) {
   const boundStartCall = startCdcesCall.bind(null, patientId);
+
+  if (!canManage) return null;
 
   if (!activeCallSession) {
     return (

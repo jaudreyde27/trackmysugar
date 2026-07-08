@@ -27,7 +27,7 @@ export async function getStaffPerformanceForMonth(year: number, month: number): 
   const end = new Date(Date.UTC(year, month, 1));
 
   const staff = await prisma.staffUser.findMany({
-    where: { organizationId: { not: null } },
+    where: { isPlatformAdmin: false },
     select: { id: true, name: true, active: true },
     orderBy: { name: "asc" },
   });
