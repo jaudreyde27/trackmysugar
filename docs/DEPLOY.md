@@ -5,7 +5,45 @@ instead of screenshots. It uses synthetic seed data only — see
 [`HIPAA.md`](./HIPAA.md) before ever pointing a deployment like this at real
 patient data. Vercel's standard plans don't offer a BAA (Business Associate
 Agreement); only Vercel Enterprise does. This preview is not a production
-home.
+home — the plan is to move to a HIPAA-eligible host (AWS/GCP/Azure, or a
+healthcare-focused PaaS like Aptible) once real patients are involved. See
+"Staying portable" below for the rules that keep that move cheap.
+
+## Staying portable
+
+Vercel is temporary; the data layer isn't allowed to know that. Rules to
+keep following as the app grows:
+
+- **Postgres only, via `DATABASE_URL`.** Never use Vercel Postgres, Vercel
+  KV, or Vercel Blob — they don't exist off Vercel. Neon here is a
+  placeholder for "any managed Postgres reachable by connection string";
+  swapping it for RDS/Cloud SQL/Azure Postgres/self-hosted later is a config
+  change, not a code change.
+- **All access through Prisma.** No raw platform SDKs for reading/writing
+  patient data — Prisma's the only thing that needs to know it's talking to
+  Postgres specifically.
+- **Secrets stay in `process.env`.** Every new secret gets added to
+  `.env.example` with a comment, the same contract regardless of host.
+- **Scheduled jobs are plain functions with a thin HTTP wrapper.**
+  `runDailySync()` (`src/lib/sync/run.ts`) has no idea Vercel Cron exists —
+  the route just accepts a bearer-authenticated GET/POST. Whatever schedules
+  it later (EventBridge, Cloud Scheduler, plain crontab) just needs to hit
+  that URL.
+- **No Edge Runtime.** Everything runs on the Node.js runtime already
+  (nothing opts into `export const runtime = "edge"`), which is what a
+  self-hosted Docker container or any of AWS/GCP/Azure expects.
+- **File storage, if it's ever added** (the Docs tab is currently a stub):
+  reach for the S3 API, not Vercel Blob — S3 itself, or an S3-compatible
+  backend (R2, GCS, MinIO) all speak the same protocol, so the storage
+  backend becomes a config change too.
+- **AI calls stay behind a swappable interface**, as `talking-points.ts` and
+  `notes-summary.ts` already do (and already fail safe to a rule-based
+  fallback with no key set) — don't let a vendor SDK leak into route
+  handlers or components directly.
+
+`next.config.ts` sets `output: "standalone"` so `docker build` works
+unmodified whenever that move happens — Vercel ignores the setting and uses
+its own build pipeline in the meantime.
 
 ## 1. Database: Neon (or any managed Postgres)
 
