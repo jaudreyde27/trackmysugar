@@ -23,6 +23,13 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+// Live Connect is time on an actual call with the patient; everything
+// else (chart review, manual entries, note-attached time) is Review Time
+// — time spent on the record without the patient on the line.
+function sessionTypeLabel(source: MonitoringRow["source"]): "Live Connect" | "Review Time" {
+  return source === "CALL" ? "Live Connect" : "Review Time";
+}
+
 function todayDateValue(): string {
   const d = new Date();
   return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d
@@ -63,6 +70,10 @@ export function MonitoringTab({ patientId, rows }: { patientId: string; rows: Mo
   );
 
   const totalSeconds = filtered.reduce((sum, r) => sum + r.durationSeconds, 0);
+  const liveConnectSeconds = filtered
+    .filter((r) => r.source === "CALL")
+    .reduce((sum, r) => sum + r.durationSeconds, 0);
+  const reviewSeconds = totalSeconds - liveConnectSeconds;
 
   async function handleSave() {
     const min = Number(minutes) || 0;
@@ -98,7 +109,7 @@ export function MonitoringTab({ patientId, rows }: { patientId: string; rows: Mo
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Monitoring</h2>
+        <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">RPM History</h2>
         <div className="flex items-center gap-2">
           <select
             value={month}
@@ -125,10 +136,20 @@ export function MonitoringTab({ patientId, rows }: { patientId: string; rows: Mo
         </div>
       </div>
 
-      <p className="mt-2 text-sm text-neutral-700 dark:text-neutral-300">
-        Time spent monitoring:{" "}
-        <span className="font-semibold tabular-nums">{formatDuration(totalSeconds)}</span> minutes
-      </p>
+      <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-neutral-700 dark:text-neutral-300">
+        <span>
+          Total:{" "}
+          <span className="font-semibold tabular-nums">{formatDuration(totalSeconds)}</span> minutes
+        </span>
+        <span>
+          Live Connect:{" "}
+          <span className="font-semibold tabular-nums">{formatDuration(liveConnectSeconds)}</span> minutes
+        </span>
+        <span>
+          Review Time:{" "}
+          <span className="font-semibold tabular-nums">{formatDuration(reviewSeconds)}</span> minutes
+        </span>
+      </div>
 
       <div className="mt-4 grid gap-3 rounded-lg border border-neutral-200 p-3 sm:grid-cols-[auto_auto_auto_1fr_auto] sm:items-end dark:border-neutral-800">
         <label className="text-xs text-neutral-500 dark:text-neutral-400">
@@ -187,6 +208,7 @@ export function MonitoringTab({ patientId, rows }: { patientId: string; rows: Mo
           <thead>
             <tr className="border-b border-neutral-200 text-left text-xs font-medium uppercase tracking-wide text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
               <th className="px-3 py-2">Date</th>
+              <th className="px-3 py-2">Type</th>
               <th className="px-3 py-2">Staff</th>
               <th className="px-3 py-2">Duration</th>
               <th className="px-3 py-2">Note</th>
@@ -196,8 +218,8 @@ export function MonitoringTab({ patientId, rows }: { patientId: string; rows: Mo
           <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-neutral-500 dark:text-neutral-400">
-                  No monitoring sessions logged for this month.
+                <td colSpan={6} className="px-3 py-6 text-center text-neutral-500 dark:text-neutral-400">
+                  No RPM sessions logged for this month.
                 </td>
               </tr>
             ) : (
@@ -205,6 +227,17 @@ export function MonitoringTab({ patientId, rows }: { patientId: string; rows: Mo
                 <tr key={row.id}>
                   <td className="px-3 py-2 text-neutral-700 dark:text-neutral-300">
                     {new Date(row.occurredAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
+                  </td>
+                  <td className="px-3 py-2">
+                    <span
+                      className={
+                        row.source === "CALL"
+                          ? "rounded-full border border-accent-border bg-accent-subtle px-2 py-0.5 text-xs font-medium text-accent"
+                          : "rounded-full border border-neutral-300 px-2 py-0.5 text-xs font-medium text-neutral-600 dark:border-neutral-700 dark:text-neutral-400"
+                      }
+                    >
+                      {sessionTypeLabel(row.source)}
+                    </span>
                   </td>
                   <td className="px-3 py-2 text-neutral-700 dark:text-neutral-300">{row.staffName}</td>
                   <td className="px-3 py-2 tabular-nums text-neutral-700 dark:text-neutral-300">

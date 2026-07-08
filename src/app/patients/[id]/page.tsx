@@ -20,7 +20,7 @@ import { CallSection } from "@/components/call-section";
 import { MonitoringTab, type MonitoringRow } from "@/components/monitoring-tab";
 import { TrendsPanel } from "@/components/trends-panel";
 import { UnsavedGuardProvider } from "@/components/unsaved-guard";
-import { ChartReviewTimerProvider, ChartReviewLockOverlay } from "@/components/chart-review-timer";
+import { ChartReviewTimerProvider, ChartReviewFloatingPrompt } from "@/components/chart-review-timer";
 import { generateNotesSummary } from "@/lib/ai/notes-summary";
 import { EnrollmentLinkButton } from "@/components/enrollment-link-button";
 import { GuardedLink } from "@/components/guarded-link";
@@ -145,7 +145,7 @@ export default async function PatientDetailPage({
         </section>
 
         <ChartReviewTimerProvider patientId={patient.id}>
-        <div className="relative mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
+        <div className="mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
           <div>
             <PatientTabs
               panels={{
@@ -218,12 +218,7 @@ export default async function PatientDetailPage({
                   </div>
                 ),
                 Medications: <MedicationsList medications={patient.activeMedications} />,
-                Monitoring: <MonitoringTab patientId={patient.id} rows={monitoringRows} />,
-                Messaging: (
-                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                    Secure messaging isn&apos;t available yet.
-                  </p>
-                ),
+                "RPM History": <MonitoringTab patientId={patient.id} rows={monitoringRows} />,
                 Docs: (
                   <p className="text-sm text-neutral-500 dark:text-neutral-400">
                     Document uploads aren&apos;t available yet.
@@ -237,9 +232,9 @@ export default async function PatientDetailPage({
             <CallSection patientId={patient.id} activeCallSession={activeCallSession} />
             <NotesPanel patientId={patient.id} history={noteHistory} aiSummary={notesSummary} />
           </div>
-
-          <ChartReviewLockOverlay />
         </div>
+
+        <ChartReviewFloatingPrompt />
         </ChartReviewTimerProvider>
         </main>
       </div>

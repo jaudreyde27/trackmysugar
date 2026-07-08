@@ -186,10 +186,10 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
                 <span className="ml-1.5 text-xs text-neutral-500 dark:text-neutral-400">
                   {calculateAge(patient.dateOfBirth)}
                 </span>
-                <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                <div className="whitespace-nowrap text-xs text-neutral-500 dark:text-neutral-400">
                   DOB {formatShortDate(patient.dateOfBirth)}
                 </div>
-                <div className="text-xs text-neutral-500 dark:text-neutral-400">{patient.mrn}</div>
+                <div className="whitespace-nowrap text-xs text-neutral-500 dark:text-neutral-400">{patient.mrn}</div>
               </td>
               <td className="px-3 py-3 text-xs whitespace-nowrap text-neutral-700 dark:text-neutral-300">
                 {patient.primaryProviderName ?? (
@@ -219,7 +219,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
                   ? `${patient.stats.averageGlucose.toFixed(0)} mg/dL`
                   : "—"}
               </td>
-              <td className="px-3 py-3 text-neutral-500 dark:text-neutral-400">
+              <td className="px-3 py-3 whitespace-nowrap text-neutral-500 dark:text-neutral-400">
                 {patient.connectionState === "NOT_CONNECTED" || patient.connectionState === "REVOKED" ? (
                   <span>Not connected</span>
                 ) : (
@@ -237,10 +237,10 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
                   </span>
                 )}
               </td>
-              <td className="px-3 py-3 text-neutral-500 dark:text-neutral-400">
+              <td className="px-3 py-3 whitespace-nowrap text-neutral-500 dark:text-neutral-400">
                 {formatShortDate(patient.enrolledAt) ?? "—"}
               </td>
-              <td className="px-3 py-3 text-neutral-500 dark:text-neutral-400">
+              <td className="px-3 py-3 whitespace-nowrap text-neutral-500 dark:text-neutral-400">
                 {patient.lastCdcesTouchpointAt ? (
                   <DateTimeStack iso={patient.lastCdcesTouchpointAt} />
                 ) : (

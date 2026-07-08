@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { ChartReviewTimerControls } from "@/components/chart-review-timer";
 
-const TABS = ["Readings", "Trends", "Devices", "Medications", "Monitoring", "Messaging", "Docs"] as const;
+const TABS = ["Readings", "Trends", "Devices", "Medications", "RPM History", "Docs"] as const;
 export type PatientTab = (typeof TABS)[number];
 
 export function PatientTabs({

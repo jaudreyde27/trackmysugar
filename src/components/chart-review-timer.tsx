@@ -154,23 +154,26 @@ export function ChartReviewTimerControls() {
   );
 }
 
-// A soft reminder veil over the record below — visible whenever the
-// timer isn't running, to nudge the CDCES to start it before digging
-// into the chart. It's not a real lock: pointer-events stay disabled
-// on the overlay itself so every click passes straight through to
-// whatever's underneath.
-export function ChartReviewLockOverlay() {
-  const { running } = useChartReviewTimer();
+// A gentle, floating reminder — not a veil over the whole record (too
+// obstructive), just a soft-pulsing pill anchored near the bottom of
+// the screen, nudging the CDCES to start the timer. Disappears the
+// moment it's running; clicking it starts the timer directly.
+export function ChartReviewFloatingPrompt() {
+  const { running, toggleRunning } = useChartReviewTimer();
+  if (running) return null;
+
   return (
-    <div
-      aria-hidden
-      className={`pointer-events-none absolute inset-0 z-20 rounded-lg backdrop-blur-[1px] transition-opacity duration-300 ${
-        running ? "opacity-0" : "opacity-100"
-      } bg-accent-subtle/80 dark:bg-accent-subtle/75`}
-    >
-      <div className="sticky top-4 mx-auto mt-4 w-fit rounded-full border border-accent-border bg-white/90 px-3 py-1 text-xs font-medium text-accent shadow-sm dark:bg-neutral-900/90">
-        ▶ Press play to start monitoring time
-      </div>
+    <div className="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center px-4">
+      <button
+        type="button"
+        onClick={toggleRunning}
+        className="pointer-events-auto flex animate-pulse items-center gap-2 rounded-full border border-accent-border bg-white px-5 py-2.5 text-sm font-medium text-accent shadow-lg hover:animate-none hover:bg-accent-subtle dark:bg-neutral-900"
+      >
+        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden>
+          <path d="M6 4.5v11l9-5.5-9-5.5z" />
+        </svg>
+        Press play to start monitoring time
+      </button>
     </div>
   );
 }
