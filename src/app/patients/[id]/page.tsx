@@ -149,6 +149,7 @@ export default async function PatientDetailPage({
         <UnsavedGuardProvider>
           <div className="mt-6">
             <PatientTabs
+              patientId={patient.id}
               panels={{
                 Readings: (
                   <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">

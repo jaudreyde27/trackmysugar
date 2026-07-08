@@ -103,7 +103,6 @@ export function ChartsPanel({
   const [a1cHighlighted, setA1cHighlighted] = useState(false);
 
   const stats = statsByWindow[dayRange];
-  const readingsPerDay = stats.readingCount > 0 ? (stats.readingCount / dayRange).toFixed(1) : "0";
 
   function handleA1cClick() {
     setA1cHighlighted(true);
@@ -193,10 +192,9 @@ export function ChartsPanel({
         </button>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mt-3 grid grid-cols-3 gap-2">
         <StatTile label="Avg glucose" value={stats.averageGlucose != null ? `${stats.averageGlucose.toFixed(0)}` : "—"} />
         <StatTile label="Time in range" value={`${stats.percentInRange.toFixed(0)}%`} />
-        <StatTile label="Readings/day" value={readingsPerDay} />
         <StatTile label="Est. A1C" value={stats.gmi != null ? `${stats.gmi.toFixed(1)}%` : "—"} highlighted={a1cHighlighted} />
       </div>
 
