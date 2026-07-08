@@ -168,7 +168,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
+        <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
           {sorted.map((patient) => (
             <tr
               key={patient.id}
