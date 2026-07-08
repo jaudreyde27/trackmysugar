@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DeviceBadges } from "@/components/device-badges";
 import { DiagnosisDisplay } from "@/components/diagnosis-display";
 import { R30Badge } from "@/components/r30-badge";
@@ -92,13 +93,8 @@ function SortHeader({
   );
 }
 
-export function PatientRosterTable({
-  roster,
-  onSelectPatient,
-}: {
-  roster: RosterRow[];
-  onSelectPatient?: (patient: RosterRow) => void;
-}) {
+export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
+  const router = useRouter();
   const [sort, setSort] = useState<SortState>(null);
 
   function toggleSort(column: SortColumn) {
@@ -136,7 +132,7 @@ export function PatientRosterTable({
   }, [roster, sort]);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
       <table className="w-full text-left text-sm">
         <thead className="border-b border-neutral-200 text-xs dark:border-neutral-800">
           <tr>
@@ -150,7 +146,7 @@ export function PatientRosterTable({
               <SortHeader label="R30" column="r30" sort={sort} onSort={toggleSort} />
             </th>
             <th className={`px-3 py-3 ${HEADER_CLASS}`}>Time in range</th>
-            <th className="px-3 py-3">
+            <th className="px-3 py-3 text-center">
               <SortHeader label="Glycemia risk zone" column="riskZone" sort={sort} onSort={toggleSort} />
             </th>
             <th className={`px-3 py-3 ${HEADER_CLASS}`}>Avg glucose (14d)</th>
@@ -167,12 +163,8 @@ export function PatientRosterTable({
           {sorted.map((patient) => (
             <tr
               key={patient.id}
-              onClick={() => onSelectPatient?.(patient)}
-              className={
-                onSelectPatient
-                  ? "cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/50"
-                  : "hover:bg-neutral-50 dark:hover:bg-neutral-900/50"
-              }
+              onClick={() => router.push(`/patients/${patient.id}`)}
+              className="cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-900/50"
             >
               <td className="px-3 py-3">
                 <Link
@@ -210,7 +202,7 @@ export function PatientRosterTable({
               <td className="px-3 py-3">
                 <TimeInRangeBreakdown stats={patient.stats} size="sm" />
               </td>
-              <td className="px-3 py-3">
+              <td className="px-3 py-3 text-center">
                 <GriZoneBadge score={patient.griScore} />
               </td>
               <td className="px-3 py-3 tabular-nums text-neutral-700 dark:text-neutral-300">
@@ -227,7 +219,7 @@ export function PatientRosterTable({
                       patient.connectionState === "ERROR" ? "text-[color:var(--status-critical)]" : undefined
                     }
                   >
-                    {formatShortDate(patient.lastSyncSuccessAt) ?? "Never"}
+                    {formatDateTime(patient.lastSyncSuccessAt) ?? "Never"}
                     {patient.connectionState === "ERROR" && " ⚠"}
                   </span>
                 )}
