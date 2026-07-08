@@ -148,7 +148,7 @@ export function NotesPanel({
                 aria-checked={twoWayCommunication}
                 onClick={() => setTwoWayCommunication((v) => !v)}
                 className={`relative h-5 w-9 rounded-full transition-colors ${
-                  twoWayCommunication ? "bg-blue-600" : "bg-neutral-300 dark:bg-neutral-700"
+                  twoWayCommunication ? "bg-accent" : "bg-neutral-300 dark:bg-neutral-700"
                 }`}
               >
                 <span
@@ -205,7 +205,7 @@ export function NotesPanel({
                 onClick={() => handleChipClick(t.label, t.boilerplate)}
                 className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
                   templateUsed === t.label
-                    ? "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-600 dark:bg-blue-950 dark:text-blue-300"
+                    ? "border-accent-border bg-accent-subtle text-accent"
                     : "border-neutral-300 text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
                 }`}
               >
@@ -222,7 +222,7 @@ export function NotesPanel({
           onChange={(e) => setNotes(e.target.value)}
           rows={5}
           placeholder="Write a note…"
-          className="block w-full resize-y rounded-md border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-950"
+          className="block w-full resize-y rounded-md border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-border/40 dark:border-neutral-700 dark:bg-neutral-950"
         />
         <div className="mt-2 flex items-center gap-2">
           <input
@@ -237,7 +237,7 @@ export function NotesPanel({
           type="button"
           onClick={() => void saveNote()}
           disabled={saving || !notes.trim()}
-          className="mt-3 w-full rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+          className="mt-3 w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-contrast hover:bg-accent-hover disabled:opacity-50"
         >
           {saving ? "Saving…" : "Add Note"}
         </button>

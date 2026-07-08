@@ -41,7 +41,7 @@ function StatTile({ label, value, highlighted }: { label: string; value: string;
     <div
       className={`rounded-md border px-3 py-2 transition-colors ${
         highlighted
-          ? "border-blue-400 bg-blue-50 dark:border-blue-600 dark:bg-blue-950"
+          ? "border-accent-border bg-accent-subtle"
           : "border-neutral-200 dark:border-neutral-800"
       }`}
     >
@@ -134,7 +134,7 @@ export function ChartsPanel({
               onClick={() => setDayRange(days)}
               className={
                 days === dayRange
-                  ? "rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
+                  ? "rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-accent-contrast"
                   : "rounded-md px-2.5 py-1 text-xs font-medium text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
               }
             >
@@ -187,7 +187,7 @@ export function ChartsPanel({
         <button
           type="button"
           onClick={handleA1cClick}
-          className="rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950"
+          className="rounded-md px-2 py-1 text-xs font-medium text-accent hover:bg-accent-subtle"
         >
           A1C
         </button>

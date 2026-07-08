@@ -26,7 +26,7 @@ export function AdminSidebar({ active, orgName }: { active: string; orgName: str
             href={item.href}
             className={
               item.label === active
-                ? "block rounded-md bg-blue-50 px-2.5 py-1.5 text-sm font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-400"
+                ? "block rounded-md bg-accent-subtle px-2.5 py-1.5 text-sm font-medium text-accent"
                 : "block rounded-md px-2.5 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
             }
           >

@@ -28,7 +28,7 @@ export function EnrollmentLinkButton({ patientId, isError }: { patientId: string
       type="button"
       onClick={handleClick}
       disabled={state === "generating"}
-      className="rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-neutral-700 disabled:opacity-60 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+      className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-accent-contrast hover:bg-accent-hover disabled:opacity-60"
     >
       {state === "generating" && "Generating…"}
       {state === "copied" && "Copied! Send it to the patient"}

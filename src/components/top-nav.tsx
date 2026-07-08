@@ -11,9 +11,10 @@ export function TopNav({
   hasOrganization?: boolean;
 }) {
   return (
-    <header className="border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
+    <header className="border-b-2 border-accent bg-white dark:bg-neutral-950">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-        <Link href="/" className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+        <Link href="/" className="flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent" aria-hidden />
           TrackMySugar
         </Link>
         <div className="flex items-center gap-4">

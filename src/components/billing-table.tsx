@@ -114,7 +114,7 @@ export function BillingTable({
             onClick={() => setFilter(key)}
             className={
               key === filter
-                ? "rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium text-white dark:bg-neutral-100 dark:text-neutral-900"
+                ? "rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-accent-contrast"
                 : "rounded-md px-2.5 py-1 text-xs font-medium text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
             }
           >

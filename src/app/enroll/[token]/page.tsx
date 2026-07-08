@@ -11,7 +11,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 function Card({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 dark:bg-neutral-950">
-      <div className="w-full max-w-sm rounded-lg border border-neutral-200 bg-white p-6 text-center shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <div className="w-full max-w-sm rounded-lg border border-neutral-200 border-t-4 border-t-accent bg-white p-6 text-center shadow-sm dark:border-neutral-800 dark:border-t-accent dark:bg-neutral-900">
         {children}
       </div>
     </div>
@@ -96,7 +96,7 @@ export default async function EnrollPage({
       )}
       <a
         href={authUrl}
-        className="mt-5 block w-full rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+        className="mt-5 block w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-contrast hover:bg-accent-hover"
       >
         Connect my Dexcom account
       </a>

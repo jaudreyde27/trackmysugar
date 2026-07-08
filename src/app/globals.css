@@ -1,8 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #fafaf7;
   --foreground: #171717;
+
+  /* Brand accent — soft sage green. Deliberately distinct in hue/saturation
+     from --status-good (a brighter, more saturated green) so a primary
+     button never gets mistaken for a clinical "in range" signal. Self-swaps
+     for dark mode below, so components just use bg-accent/text-accent/etc.
+     without needing their own dark: variant. */
+  --accent: #4f6f52;
+  --accent-hover: #3e5a41;
+  --accent-subtle: #eaf1e8;
+  --accent-border: #b9cdb4;
+  --accent-contrast: #ffffff;
 
   /* Status palette (fixed, never themed) */
   --status-good: #0ca30c;
@@ -31,14 +42,25 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-border: var(--accent-border);
+  --color-accent-contrast: var(--accent-contrast);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #0c0f0c;
     --foreground: #ededed;
+
+    --accent: #8fbf8a;
+    --accent-hover: #a6d0a1;
+    --accent-subtle: #17201a;
+    --accent-border: #3e5a3c;
+    --accent-contrast: #12200f;
 
     --status-good: #0ca30c;
     --status-warning: #fab219;

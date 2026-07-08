@@ -134,7 +134,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
       <table className="w-full text-left text-sm">
-        <thead className="border-b border-neutral-200 text-xs dark:border-neutral-800">
+        <thead className="border-b border-neutral-200 bg-accent-subtle/50 text-xs dark:border-neutral-800 dark:bg-accent-subtle">
           <tr>
             <th className={`px-3 py-3 ${HEADER_CLASS}`}>Patient</th>
             <th className="px-3 py-3">

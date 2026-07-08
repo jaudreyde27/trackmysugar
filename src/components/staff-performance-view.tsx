@@ -55,7 +55,7 @@ export function StaffPerformanceView({
             onClick={() => setView(v)}
             className={
               v === view
-                ? "rounded-md bg-neutral-900 px-2.5 py-1 text-xs font-medium capitalize text-white dark:bg-neutral-100 dark:text-neutral-900"
+                ? "rounded-md bg-accent px-2.5 py-1 text-xs font-medium capitalize text-accent-contrast"
                 : "rounded-md px-2.5 py-1 text-xs font-medium capitalize text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
             }
           >
