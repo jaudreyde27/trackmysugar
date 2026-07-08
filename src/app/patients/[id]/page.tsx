@@ -20,6 +20,7 @@ import { CallSection } from "@/components/call-section";
 import { MonitoringTab, type MonitoringRow } from "@/components/monitoring-tab";
 import { TrendsPanel } from "@/components/trends-panel";
 import { UnsavedGuardProvider } from "@/components/unsaved-guard";
+import { ChartReviewTimerProvider, ChartReviewLockOverlay } from "@/components/chart-review-timer";
 import { generateNotesSummary } from "@/lib/ai/notes-summary";
 import { disconnectDexcom } from "@/app/actions/dexcom";
 import { EnrollmentLinkButton } from "@/components/enrollment-link-button";
@@ -131,8 +132,6 @@ export default async function PatientDetailPage({
               primaryProviderName={patient.primaryProviderName}
               careManagerName={patient.careManagerName}
               lastCdcesTouchpointAt={patient.lastCdcesTouchpointAt}
-              phone={patient.contact.phoneMobile ?? patient.contact.phoneHome ?? patient.contact.phoneWork}
-              email={patient.contact.email}
               complianceHistory={patient.complianceHistory}
             />
           </div>
@@ -147,10 +146,10 @@ export default async function PatientDetailPage({
           </div>
         </section>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
+        <ChartReviewTimerProvider patientId={patient.id}>
+        <div className="relative mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
           <div>
             <PatientTabs
-              patientId={patient.id}
               panels={{
                 Readings: (
                   <>
@@ -250,7 +249,10 @@ export default async function PatientDetailPage({
             <CallSection patientId={patient.id} activeCallSession={activeCallSession} />
             <NotesPanel patientId={patient.id} history={noteHistory} aiSummary={notesSummary} />
           </div>
+
+          <ChartReviewLockOverlay />
         </div>
+        </ChartReviewTimerProvider>
         </main>
       </div>
     </UnsavedGuardProvider>

@@ -1,17 +1,15 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { ChartReviewTimer } from "@/components/chart-review-timer";
+import { ChartReviewTimerControls } from "@/components/chart-review-timer";
 
 const TABS = ["Readings", "Trends", "Devices", "Medications", "Monitoring", "Messaging", "Docs"] as const;
 export type PatientTab = (typeof TABS)[number];
 
 export function PatientTabs({
   panels,
-  patientId,
 }: {
   panels: Record<PatientTab, React.ReactNode>;
-  patientId: string;
 }) {
   const [active, setActive] = useState<PatientTab>("Readings");
   const pendingScrollY = useRef<number | null>(null);
@@ -29,13 +27,25 @@ export function PatientTabs({
   // Switching tabs swaps in a panel of a different height, which can shrink
   // the page below the current scroll offset and make the browser clamp
   // scrollY back up — reads as an unwanted jump to the top. Restore the
-  // pre-switch position (synchronously, before paint) so the page appears
-  // to stay put.
+  // pre-switch position synchronously (before paint), then keep
+  // re-asserting it for a few frames — some panel content (charts, etc.)
+  // finishes sizing itself asynchronously after mount and can trigger a
+  // second, later clamp that the one-shot restore wouldn't catch.
   useLayoutEffect(() => {
-    if (pendingScrollY.current != null) {
-      window.scrollTo(0, pendingScrollY.current);
-      pendingScrollY.current = null;
-    }
+    if (pendingScrollY.current == null) return;
+    const target = pendingScrollY.current;
+    pendingScrollY.current = null;
+    window.scrollTo(0, target);
+
+    let frames = 0;
+    let rafId = requestAnimationFrame(function reassert() {
+      window.scrollTo(0, target);
+      frames += 1;
+      if (frames < 10) {
+        rafId = requestAnimationFrame(reassert);
+      }
+    });
+    return () => cancelAnimationFrame(rafId);
   }, [active]);
 
   return (
@@ -57,7 +67,7 @@ export function PatientTabs({
             </button>
           ))}
         </div>
-        <ChartReviewTimer patientId={patientId} />
+        <ChartReviewTimerControls />
       </div>
       <div className="py-4">{panels[active]}</div>
     </div>

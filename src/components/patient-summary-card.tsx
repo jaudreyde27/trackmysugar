@@ -33,8 +33,6 @@ export function PatientSummaryCard({
   primaryProviderName,
   careManagerName,
   lastCdcesTouchpointAt,
-  phone,
-  email,
   complianceHistory,
 }: {
   firstName: string;
@@ -46,22 +44,16 @@ export function PatientSummaryCard({
   primaryProviderName: string | null;
   careManagerName: string | null;
   lastCdcesTouchpointAt: Date | null;
-  phone: string | null;
-  email: string | null;
   complianceHistory: ComplianceMonth[];
 }) {
   return (
     <div className="grid gap-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800 lg:grid-cols-[1fr_auto]">
-      <div className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
+      <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
         <div className="space-y-3">
           <Field label="Patient name" value={`${firstName} ${lastName}`} />
           <Field label="Gender" value={sex} />
           <Field label="DOB" value={formatDate(dateOfBirth)} />
           <Field label="Provider" value={primaryProviderName} />
-        </div>
-        <div className="space-y-3">
-          <Field label="Phone" value={phone} />
-          <Field label="Email" value={email} />
         </div>
         <div className="space-y-3">
           <Field label="RPM consent date" value={formatDate(consentDate)} />

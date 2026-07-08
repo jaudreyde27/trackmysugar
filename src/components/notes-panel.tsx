@@ -51,7 +51,7 @@ export function NotesPanel({
   const [twoWayCommunication, setTwoWayCommunication] = useState(false);
   const [minutes, setMinutes] = useState<string>("");
   const [seconds, setSeconds] = useState<string>("");
-  const [templateUsed, setTemplateUsed] = useState<string | null>(null);
+  const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [occurredAt, setOccurredAt] = useState(() => toDatetimeLocalValue(new Date()));
   const [saving, setSaving] = useState(false);
@@ -68,10 +68,10 @@ export function NotesPanel({
         twoWayCommunication,
         monitoringMinutes: Number(minutes) || 0,
         monitoringSeconds: Number(seconds) || 0,
-        templateUsed,
+        templateUsed: selectedTemplates.length ? selectedTemplates.join(", ") : null,
       });
       setNotes("");
-      setTemplateUsed(null);
+      setSelectedTemplates([]);
       setMinutes("");
       setSeconds("");
       setTwoWayCommunication(false);
@@ -85,27 +85,26 @@ export function NotesPanel({
   }
 
   // Registers the current draft with the app-wide unsaved-changes guard —
-  // switching tabs or navigating away while this is non-empty prompts to
-  // save first.
-  useUnsavedGuardRegistration(notes, saveNote);
+  // navigating away while this is non-empty prompts to save first.
+  useUnsavedGuardRegistration("notes", "Unsaved note", notes, saveNote);
 
   function removeBoilerplate(text: string, boilerplate: string): string {
     return text.replace(boilerplate, "").replace(/\s{2,}/g, " ").trim();
   }
 
+  // Templates are independently toggleable — several can be active at
+  // once (e.g. "Left Voicemail" + "Chart Review" on the same visit).
+  // Selecting a chip appends its boilerplate; deselecting it pulls just
+  // that boilerplate back out, leaving the rest of the note untouched.
   function handleChipClick(label: string, boilerplate: string) {
-    if (templateUsed === label) {
-      // Clicking the active chip again unselects it and pulls its
-      // boilerplate back out, rather than leaving stray text behind.
-      setTemplateUsed(null);
+    if (selectedTemplates.includes(label)) {
+      setSelectedTemplates((prev) => prev.filter((l) => l !== label));
       setNotes((prev) => removeBoilerplate(prev, boilerplate));
       return;
     }
 
-    const previousTemplate = NOTE_TEMPLATES.find((t) => t.label === templateUsed);
-    const base = previousTemplate ? removeBoilerplate(notes, previousTemplate.boilerplate) : notes.trim();
-    setTemplateUsed(label);
-    setNotes(base ? `${base} ${boilerplate}` : boilerplate);
+    setSelectedTemplates((prev) => [...prev, label]);
+    setNotes((prev) => (prev.trim() ? `${prev.trim()} ${boilerplate}` : boilerplate));
   }
 
   const sorted = useMemo(
@@ -217,8 +216,9 @@ export function NotesPanel({
                 key={t.label}
                 type="button"
                 onClick={() => handleChipClick(t.label, t.boilerplate)}
+                aria-pressed={selectedTemplates.includes(t.label)}
                 className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
-                  templateUsed === t.label
+                  selectedTemplates.includes(t.label)
                     ? "border-accent-border bg-accent-subtle text-accent"
                     : "border-neutral-300 text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
                 }`}

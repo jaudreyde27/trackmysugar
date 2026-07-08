@@ -110,7 +110,7 @@ export async function hasCgmInterpretationForMonth(
   const start = new Date(Date.UTC(year, month - 1, 1));
   const end = new Date(Date.UTC(year, month, 1));
   const row = await prisma.monitoringSession.findFirst({
-    where: { patientId, occurredAt: { gte: start, lt: end }, templateUsed: "Chart Review" },
+    where: { patientId, occurredAt: { gte: start, lt: end }, templateUsed: { contains: "Chart Review" } },
     select: { id: true },
   });
   return row != null;
