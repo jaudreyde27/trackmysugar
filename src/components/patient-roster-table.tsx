@@ -56,15 +56,24 @@ function formatShortDate(iso: string | null): string | null {
   return new Date(iso).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" });
 }
 
-function formatDateTime(iso: string | null): string | null {
+function formatDatePart(iso: string | null): string | null {
   if (!iso) return null;
-  return new Date(iso).toLocaleString([], {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return new Date(iso).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" });
+}
+
+function formatTimePart(iso: string | null): string | null {
+  if (!iso) return null;
+  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function DateTimeStack({ iso }: { iso: string | null }) {
+  if (!iso) return null;
+  return (
+    <>
+      <div>{formatDatePart(iso)}</div>
+      <div className="text-xs text-neutral-400 dark:text-neutral-500">{formatTimePart(iso)}</div>
+    </>
+  );
 }
 
 function SortHeader({
@@ -164,7 +173,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
             <tr
               key={patient.id}
               onClick={() => router.push(`/patients/${patient.id}`)}
-              className="cursor-pointer transition-colors hover:bg-accent-subtle"
+              className="cursor-pointer transition-colors hover:bg-accent/15"
             >
               <td className="px-3 py-3">
                 <Link
@@ -172,7 +181,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
                   onClick={(e) => e.stopPropagation()}
                   className="font-medium text-neutral-900 hover:underline dark:text-neutral-100"
                 >
-                  {patient.lastName}, {patient.firstName}
+                  {patient.firstName} {patient.lastName}
                 </Link>
                 <span className="ml-1.5 text-xs text-neutral-500 dark:text-neutral-400">
                   {calculateAge(patient.dateOfBirth)}
@@ -182,7 +191,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
                 </div>
                 <div className="text-xs text-neutral-500 dark:text-neutral-400">{patient.mrn}</div>
               </td>
-              <td className="px-3 py-3 text-neutral-700 dark:text-neutral-300">
+              <td className="px-3 py-3 text-xs whitespace-nowrap text-neutral-700 dark:text-neutral-300">
                 {patient.primaryProviderName ?? (
                   <span className="text-neutral-400 dark:text-neutral-500">Unassigned</span>
                 )}
@@ -219,7 +228,11 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
                       patient.connectionState === "ERROR" ? "text-[color:var(--status-critical)]" : undefined
                     }
                   >
-                    {formatDateTime(patient.lastSyncSuccessAt) ?? "Never"}
+                    {patient.lastSyncSuccessAt ? (
+                      <DateTimeStack iso={patient.lastSyncSuccessAt} />
+                    ) : (
+                      "Never"
+                    )}
                     {patient.connectionState === "ERROR" && " ⚠"}
                   </span>
                 )}
@@ -228,7 +241,11 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
                 {formatShortDate(patient.enrolledAt) ?? "—"}
               </td>
               <td className="px-3 py-3 text-neutral-500 dark:text-neutral-400">
-                {formatDateTime(patient.lastCdcesTouchpointAt) ?? "None logged"}
+                {patient.lastCdcesTouchpointAt ? (
+                  <DateTimeStack iso={patient.lastCdcesTouchpointAt} />
+                ) : (
+                  "None logged"
+                )}
               </td>
             </tr>
           ))}

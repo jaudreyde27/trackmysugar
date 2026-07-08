@@ -4,11 +4,12 @@ export function PumpPlaceholder({ hasPump }: { hasPump: boolean }) {
       <p className="text-sm text-neutral-500 dark:text-neutral-400">
         {hasPump ? "Pump data isn't integrated yet." : "No pump on file."}
       </p>
-      <p className="max-w-xs text-xs text-neutral-400 dark:text-neutral-500">
-        {hasPump
-          ? "Insulin delivery data (basal/bolus history, reservoir status) requires a separate integration with the patient's pump platform."
-          : "This patient manages insulin delivery via multiple daily injections (MDI)."}
-      </p>
+      {hasPump && (
+        <p className="max-w-xs text-xs text-neutral-400 dark:text-neutral-500">
+          Insulin delivery data (basal/bolus history, reservoir status) requires a separate integration with the
+          patient&apos;s pump platform.
+        </p>
+      )}
     </div>
   );
 }

@@ -151,7 +151,7 @@ export function BillingTable({
               filtered.map((row) => (
                 <tr key={row.patientId}>
                   <td className="px-3 py-2 text-neutral-800 dark:text-neutral-200">
-                    {row.lastName}, {row.firstName}
+                    {row.firstName} {row.lastName}
                   </td>
                   <td className="px-3 py-2 text-center tabular-nums text-neutral-600 dark:text-neutral-400">
                     {formatDuration(row.eligibility.monitoringMinutes)}

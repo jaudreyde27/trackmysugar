@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifySession } from "@/lib/auth/dal";
 import { getPatientDetail } from "@/lib/data/patient-detail";
@@ -24,6 +23,7 @@ import { UnsavedGuardProvider } from "@/components/unsaved-guard";
 import { generateNotesSummary } from "@/lib/ai/notes-summary";
 import { disconnectDexcom } from "@/app/actions/dexcom";
 import { EnrollmentLinkButton } from "@/components/enrollment-link-button";
+import { GuardedLink } from "@/components/guarded-link";
 
 function diabetesTypeLabel(type: "TYPE_1" | "TYPE_2") {
   return type === "TYPE_1" ? "Type 1 diabetes" : "Type 2 diabetes";
@@ -92,16 +92,17 @@ export default async function PatientDetailPage({
   const hasPump = patient.insulinDeliveryDevice != null && patient.insulinDeliveryDevice !== "MDI";
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <TopNav staffName={session.staffUser.name} isPlatformAdmin={session.staffUser.isPlatformAdmin} hasOrganization={!!session.staffUser.organizationId} />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
-        <Link href="/" className="text-sm text-neutral-500 hover:underline dark:text-neutral-400">
+    <UnsavedGuardProvider>
+      <div className="flex min-h-screen flex-col">
+        <TopNav staffName={session.staffUser.name} isPlatformAdmin={session.staffUser.isPlatformAdmin} hasOrganization={!!session.staffUser.organizationId} />
+        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
+        <GuardedLink href="/" className="text-sm text-neutral-500 hover:underline dark:text-neutral-400">
           ← Practice overview
-        </Link>
+        </GuardedLink>
 
         <div>
           <h1 className="mt-2 text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-            {patient.lastName}, {patient.firstName}
+            {patient.firstName} {patient.lastName}
           </h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1">
             <CgmDeviceBadge device={patient.cgmDevice} />
@@ -146,76 +147,69 @@ export default async function PatientDetailPage({
           </div>
         </section>
 
-        <UnsavedGuardProvider>
-          <div className="mt-6">
+        <div className="mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
+          <div>
             <PatientTabs
               patientId={patient.id}
               panels={{
                 Readings: (
-                  <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-                    <div>
-                      <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-                        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                          <CgmStatusLine
-                            cgmDevice={patient.cgmDevice}
-                            connectionState={patient.connectionState}
-                            lastError={patient.lastError}
-                            lastSyncSuccessAt={patient.lastSyncSuccessAt}
-                            r30Count={patient.r30Count}
-                            environment={patient.environment}
-                          />
-                          <div className="flex items-center gap-3">
-                            <DaysTransmittedCounter count={patient.r30Count} />
-                            {patient.cgmDevice &&
-                              (patient.connectionState === "ACTIVE" ? (
-                                <form action={boundDisconnectDexcom}>
-                                  <button
-                                    type="submit"
-                                    className="text-xs font-medium text-neutral-500 underline hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
-                                  >
-                                    Disconnect
-                                  </button>
-                                </form>
-                              ) : (
-                                <EnrollmentLinkButton
-                                  patientId={patient.id}
-                                  isError={patient.connectionState === "ERROR"}
-                                />
-                              ))}
-                          </div>
-                        </div>
-                        <div className="mt-3">
-                          <StreakCalendar
-                            days={patient.syncDayHistory.map((d) => ({
-                              date: new Date(d.date).toISOString().slice(0, 10),
-                              hasData: d.hasData,
-                            }))}
-                          />
-                        </div>
-                        <div className="mt-3">
-                          <ChartsPanel
-                            readings={patient.recentReadings.map((r) => ({
-                              systemTime: new Date(r.systemTime).toISOString(),
-                              value: r.value,
-                            }))}
-                            statsByWindow={patient.statsByWindow}
-                          />
+                  <>
+                    <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+                      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                        <CgmStatusLine
+                          cgmDevice={patient.cgmDevice}
+                          connectionState={patient.connectionState}
+                          lastError={patient.lastError}
+                          lastSyncSuccessAt={patient.lastSyncSuccessAt}
+                          r30Count={patient.r30Count}
+                          environment={patient.environment}
+                        />
+                        <div className="flex items-center gap-3">
+                          <DaysTransmittedCounter count={patient.r30Count} />
+                          {patient.cgmDevice &&
+                            (patient.connectionState === "ACTIVE" ? (
+                              <form action={boundDisconnectDexcom}>
+                                <button
+                                  type="submit"
+                                  className="text-xs font-medium text-neutral-500 underline hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+                                >
+                                  Disconnect
+                                </button>
+                              </form>
+                            ) : (
+                              <EnrollmentLinkButton
+                                patientId={patient.id}
+                                isError={patient.connectionState === "ERROR"}
+                              />
+                            ))}
                         </div>
                       </div>
-
-                      <div className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-                        <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Pump</h3>
-                        <div className="mt-2">
-                          <PumpPlaceholder hasPump={hasPump} />
-                        </div>
+                      <div className="mt-3">
+                        <StreakCalendar
+                          days={patient.syncDayHistory.map((d) => ({
+                            date: new Date(d.date).toISOString().slice(0, 10),
+                            hasData: d.hasData,
+                          }))}
+                        />
+                      </div>
+                      <div className="mt-3">
+                        <ChartsPanel
+                          readings={patient.recentReadings.map((r) => ({
+                            systemTime: new Date(r.systemTime).toISOString(),
+                            value: r.value,
+                          }))}
+                          statsByWindow={patient.statsByWindow}
+                        />
                       </div>
                     </div>
 
-                    <div className="space-y-4">
-                      <CallSection patientId={patient.id} activeCallSession={activeCallSession} />
-                      <NotesPanel patientId={patient.id} history={noteHistory} aiSummary={notesSummary} />
+                    <div className="mt-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+                      <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">Pump</h3>
+                      <div className="mt-2">
+                        <PumpPlaceholder hasPump={hasPump} />
+                      </div>
                     </div>
-                  </div>
+                  </>
                 ),
                 Trends: (
                   <TrendsPanel
@@ -251,8 +245,14 @@ export default async function PatientDetailPage({
               }}
             />
           </div>
-        </UnsavedGuardProvider>
-      </main>
-    </div>
+
+          <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+            <CallSection patientId={patient.id} activeCallSession={activeCallSession} />
+            <NotesPanel patientId={patient.id} history={noteHistory} aiSummary={notesSummary} />
+          </div>
+        </div>
+        </main>
+      </div>
+    </UnsavedGuardProvider>
   );
 }

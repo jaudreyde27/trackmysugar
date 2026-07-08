@@ -89,9 +89,23 @@ export function NotesPanel({
   // save first.
   useUnsavedGuardRegistration(notes, saveNote);
 
+  function removeBoilerplate(text: string, boilerplate: string): string {
+    return text.replace(boilerplate, "").replace(/\s{2,}/g, " ").trim();
+  }
+
   function handleChipClick(label: string, boilerplate: string) {
+    if (templateUsed === label) {
+      // Clicking the active chip again unselects it and pulls its
+      // boilerplate back out, rather than leaving stray text behind.
+      setTemplateUsed(null);
+      setNotes((prev) => removeBoilerplate(prev, boilerplate));
+      return;
+    }
+
+    const previousTemplate = NOTE_TEMPLATES.find((t) => t.label === templateUsed);
+    const base = previousTemplate ? removeBoilerplate(notes, previousTemplate.boilerplate) : notes.trim();
     setTemplateUsed(label);
-    setNotes((prev) => (prev.trim() ? `${prev.trim()} ${boilerplate}` : boilerplate));
+    setNotes(base ? `${base} ${boilerplate}` : boilerplate);
   }
 
   const sorted = useMemo(

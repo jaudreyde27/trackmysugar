@@ -63,7 +63,7 @@ export function AuditReportDocument({ data }: { data: AuditReportData }) {
         <View style={styles.header}>
           <Text style={styles.programLabel}>Remote Patient Monitoring Program</Text>
           <Text style={styles.title}>
-            {data.organizationName} — {patient.lastName}, {patient.firstName} — RPM Report
+            {data.organizationName} — {patient.firstName} {patient.lastName} — RPM Report
           </Text>
           <Text style={styles.period}>Reporting period: {periodLabel}</Text>
         </View>
@@ -73,7 +73,7 @@ export function AuditReportDocument({ data }: { data: AuditReportData }) {
           <View style={styles.row}>
             <Text style={styles.label}>Name</Text>
             <Text style={styles.value}>
-              {patient.lastName}, {patient.firstName}
+              {patient.firstName} {patient.lastName}
             </Text>
           </View>
           <View style={styles.row}>

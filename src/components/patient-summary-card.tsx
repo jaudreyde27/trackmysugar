@@ -54,7 +54,7 @@ export function PatientSummaryCard({
     <div className="grid gap-6 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800 lg:grid-cols-[1fr_auto]">
       <div className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
         <div className="space-y-3">
-          <Field label="Patient name" value={`${lastName}, ${firstName}`} />
+          <Field label="Patient name" value={`${firstName} ${lastName}`} />
           <Field label="Gender" value={sex} />
           <Field label="DOB" value={formatDate(dateOfBirth)} />
           <Field label="Provider" value={primaryProviderName} />

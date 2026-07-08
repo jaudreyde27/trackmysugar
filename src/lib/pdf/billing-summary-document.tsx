@@ -54,7 +54,7 @@ export function BillingSummaryDocument({
           {rows.map((row) => (
             <View style={styles.tableRow} key={row.patientId}>
               <Text style={styles.cellName}>
-                {row.lastName}, {row.firstName}
+                {row.firstName} {row.lastName}
               </Text>
               <Text style={styles.cell}>{row.eligibility.monitoringMinutes.toFixed(1)}</Text>
               <Text style={styles.cell}>{row.eligibility.daysOfReadings}</Text>

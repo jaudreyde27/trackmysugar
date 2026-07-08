@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { logout } from "@/app/actions/auth";
+import { GuardedLink } from "@/components/guarded-link";
 
 export function TopNav({
   staffName,
@@ -13,26 +13,26 @@ export function TopNav({
   return (
     <header className="border-b-2 border-accent bg-white dark:bg-neutral-950">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-        <Link href="/" className="flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+        <GuardedLink href="/" className="flex items-center gap-2 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent" aria-hidden />
           TrackMySugar
-        </Link>
+        </GuardedLink>
         <div className="flex items-center gap-4">
           {hasOrganization && (
-            <Link
+            <GuardedLink
               href="/billing"
               className="text-sm text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
             >
               Billing
-            </Link>
+            </GuardedLink>
           )}
           {isPlatformAdmin && (
-            <Link
+            <GuardedLink
               href="/admin"
               className="text-sm text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
             >
               Admin
-            </Link>
+            </GuardedLink>
           )}
           <span className="text-sm text-neutral-500 dark:text-neutral-400">{staffName}</span>
           <form action={logout}>

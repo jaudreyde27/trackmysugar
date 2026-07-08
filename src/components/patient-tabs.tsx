@@ -1,7 +1,6 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { useAttemptNavigate } from "@/components/unsaved-guard";
 import { ChartReviewTimer } from "@/components/chart-review-timer";
 
 const TABS = ["Readings", "Trends", "Devices", "Medications", "Monitoring", "Messaging", "Docs"] as const;
@@ -15,13 +14,16 @@ export function PatientTabs({
   patientId: string;
 }) {
   const [active, setActive] = useState<PatientTab>("Readings");
-  const attemptNavigate = useAttemptNavigate();
   const pendingScrollY = useRef<number | null>(null);
 
+  // Switching tabs no longer risks losing an unsaved note — the notes
+  // column lives outside these swapped panels and never unmounts — so
+  // this can navigate directly instead of routing through the
+  // unsaved-changes guard.
   function handleTabClick(tab: PatientTab) {
     if (tab === active) return;
     pendingScrollY.current = window.scrollY;
-    attemptNavigate(() => setActive(tab));
+    setActive(tab);
   }
 
   // Switching tabs swaps in a panel of a different height, which can shrink
