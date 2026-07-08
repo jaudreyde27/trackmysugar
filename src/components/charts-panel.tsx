@@ -7,9 +7,17 @@ import type { GlucoseStats } from "@/lib/data/glucose-stats";
 
 type Reading = { systemTime: string; value: number };
 
-const DAY_RANGE_OPTIONS = [7, 14, 30, 90] as const;
+const DAY_RANGE_OPTIONS = [1, 3, 7] as const;
 type DayRange = (typeof DAY_RANGE_OPTIONS)[number];
-const DEFAULT_DAY_RANGE: DayRange = 14;
+const DEFAULT_DAY_RANGE: DayRange = 3;
+
+function rangeButtonLabel(days: DayRange): string {
+  return days === 1 ? "24H" : `${days}D`;
+}
+
+function rangeHeadingLabel(days: DayRange): string {
+  return days === 1 ? "last 24 hours" : `last ${days} days`;
+}
 
 const ICON_CLASS = "h-4 w-4";
 const VIEW_ICONS = {
@@ -86,7 +94,7 @@ export function ChartsPanel({
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
-          Glucose <span className="font-normal text-neutral-400">· last {dayRange} days</span>
+          Glucose <span className="font-normal text-neutral-400">· {rangeHeadingLabel(dayRange)}</span>
         </h3>
         <div className="flex items-center gap-1">
           {DAY_RANGE_OPTIONS.map((days) => (
@@ -100,7 +108,7 @@ export function ChartsPanel({
                   : "rounded-md px-2.5 py-1 text-xs font-medium text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
               }
             >
-              {days}D
+              {rangeButtonLabel(days)}
             </button>
           ))}
         </div>

@@ -72,7 +72,7 @@ export type PatientDetail = {
   lastError: string | null;
   r30Count: number;
   lastCdcesTouchpointAt: Date | null;
-  statsByWindow: Record<7 | 14 | 30 | 90, GlucoseStats>;
+  statsByWindow: Record<1 | 3 | 7, GlucoseStats>;
   recentReadings: Array<{ systemTime: Date; value: number }>;
   syncDayHistory: Array<{ date: Date; hasData: boolean }>;
   activeMedications: Medication[];
@@ -104,10 +104,9 @@ export async function getPatientDetail(
   const calendarSince = new Date(Date.now() - CALENDAR_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
   const [
+    stats1,
+    stats3,
     stats7,
-    stats14,
-    stats30,
-    stats90,
     recentReadings,
     syncDays,
     r30Count,
@@ -120,10 +119,9 @@ export async function getPatientDetail(
     mostRecentReading,
     monitoringTotalsThisMonth,
   ] = await Promise.all([
+    getGlucoseStatsForPatient(patientId, 1),
+    getGlucoseStatsForPatient(patientId, 3),
     getGlucoseStatsForPatient(patientId, 7),
-    getGlucoseStatsForPatient(patientId, 14),
-    getGlucoseStatsForPatient(patientId, 30),
-    getGlucoseStatsForPatient(patientId, 90),
     prisma.glucoseReading.findMany({
       where: { patientId, systemTime: { gte: since } },
       orderBy: { systemTime: "asc" },
@@ -199,7 +197,7 @@ export async function getPatientDetail(
     lastError: patient.dexcomConnection?.lastError ?? null,
     r30Count,
     lastCdcesTouchpointAt,
-    statsByWindow: { 7: stats7, 14: stats14, 30: stats30, 90: stats90 },
+    statsByWindow: { 1: stats1, 3: stats3, 7: stats7 },
     recentReadings,
     syncDayHistory: syncDays,
     activeMedications,
