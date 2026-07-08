@@ -6,13 +6,19 @@ export type MonitoringSessionWithStaff = MonitoringSession & {
   staffUser: { name: string };
 };
 
-// The "last touchpoint" date is whichever is more recent: the end of the
-// last completed call, or the start of a call still in progress. Two
-// separate MAX aggregates (rather than a per-row coalesce) are equivalent
-// here since a session's startedAt never exceeds its own endedAt.
+// A "touchpoint"/visit is a live call, or a note explicitly tagged
+// "RPM Completed" — the other quick-note templates (Left Voicemail,
+// Unable to Leave Voicemail, Chart Comment) are notes only: they still
+// show up in the patient's note history, but a missed-call attempt or a
+// chart-review comment doesn't count as having reached the patient.
+const TOUCHPOINT_WHERE = {
+  OR: [{ source: "CALL" as const }, { templateUsed: { contains: "RPM Completed" } }],
+};
+
 export async function getLastTouchpointForAllPatients(): Promise<Map<string, Date>> {
   const rows = await prisma.monitoringSession.groupBy({
     by: ["patientId"],
+    where: TOUCHPOINT_WHERE,
     _max: { occurredAt: true },
   });
 
@@ -25,7 +31,7 @@ export async function getLastTouchpointForAllPatients(): Promise<Map<string, Dat
 
 export async function getLastTouchpointForPatient(patientId: string): Promise<Date | null> {
   const last = await prisma.monitoringSession.findFirst({
-    where: { patientId },
+    where: { patientId, ...TOUCHPOINT_WHERE },
     orderBy: { occurredAt: "desc" },
     select: { occurredAt: true },
   });
@@ -100,7 +106,7 @@ export async function getMonthlyMonitoringTotals(
 }
 
 // Whether a qualifying CGM interpretation was documented this month — the
-// "Chart Review" quick-note template is the closest machine-checkable proxy
+// "Chart Comment" quick-note template is the closest machine-checkable proxy
 // to a CGM analysis actually being performed and recorded.
 export async function hasCgmInterpretationForMonth(
   patientId: string,
@@ -110,7 +116,7 @@ export async function hasCgmInterpretationForMonth(
   const start = new Date(Date.UTC(year, month - 1, 1));
   const end = new Date(Date.UTC(year, month, 1));
   const row = await prisma.monitoringSession.findFirst({
-    where: { patientId, occurredAt: { gte: start, lt: end }, templateUsed: { contains: "Chart Review" } },
+    where: { patientId, occurredAt: { gte: start, lt: end }, templateUsed: { contains: "Chart Comment" } },
     select: { id: true },
   });
   return row != null;

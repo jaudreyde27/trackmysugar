@@ -658,7 +658,7 @@ async function main() {
             occurredAt: thisMonth(10, 9),
             durationSeconds: 8 * 60,
             twoWayCommunication: true,
-            templateUsed: "Chart Review",
+            templateUsed: "Chart Comment",
             notes: "Reviewed CGM data and chart for this reporting period. No concerning patterns identified.",
           },
         ],

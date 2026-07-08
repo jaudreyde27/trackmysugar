@@ -7,11 +7,9 @@ type Reading = { systemTime: string; value: number };
 type Bucket = {
   minuteOfDay: number; // bucket start, 0..1410 step 30
   count: number;
-  p10: number;
   p25: number;
   p50: number;
   p75: number;
-  p90: number;
 };
 
 const WIDTH = 720;
@@ -42,11 +40,11 @@ function formatMinuteOfDay(minute: number): string {
   return `${hour12}:${min.toString().padStart(2, "0")} ${period}`;
 }
 
-// Ambulatory-glucose-profile-style percentile bands: for each half-hour
+// Ambulatory-glucose-profile-style percentile band: for each half-hour
 // slot of the day, the spread of glucose values across every day in the
-// window — median trend line plus an inner (25th-75th) and outer
-// (10th-90th) shaded band. Computed natively from our own readings, no
-// external aggregation engine involved.
+// window — median trend line plus a 25th-75th (IQR) shaded band.
+// Computed natively from our own readings, no external aggregation
+// engine involved.
 export function PercentileBandChart({ readings, dayRange }: { readings: Reading[]; dayRange: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -77,11 +75,9 @@ export function PercentileBandChart({ readings, dayRange }: { readings: Reading[
       result.push({
         minuteOfDay,
         count: sorted.length,
-        p10: percentile(sorted, 10),
         p25: percentile(sorted, 25),
         p50: percentile(sorted, 50),
         p75: percentile(sorted, 75),
-        p90: percentile(sorted, 90),
       });
     }
     return result;
@@ -105,7 +101,7 @@ export function PercentileBandChart({ readings, dayRange }: { readings: Reading[
     x: xFor(b.minuteOfDay + BUCKET_MINUTES / 2),
   }));
 
-  function areaPath(lowKey: "p10" | "p25", highKey: "p90" | "p75") {
+  function areaPath(lowKey: "p25", highKey: "p75") {
     const top = points.map((p) => `${p.x.toFixed(1)},${yFor(p[highKey]).toFixed(1)}`).join(" L");
     const bottom = points
       .slice()
@@ -181,7 +177,6 @@ export function PercentileBandChart({ readings, dayRange }: { readings: Reading[
           </text>
         ))}
 
-        <path d={areaPath("p10", "p90")} fill="#2a78d6" opacity={0.1} />
         <path d={areaPath("p25", "p75")} fill="#2a78d6" opacity={0.22} />
         <path d={medianPath} fill="none" stroke="#2a78d6" strokeWidth={2} strokeLinejoin="round" />
 
@@ -223,7 +218,7 @@ export function PercentileBandChart({ readings, dayRange }: { readings: Reading[
           </div>
           <div className="mt-0.5 font-medium tabular-nums">Median: {hover.p50.toFixed(0)} mg/dL</div>
           <div className="mt-0.5 text-neutral-500 tabular-nums dark:text-neutral-400">
-            IQR {hover.p25.toFixed(0)}–{hover.p75.toFixed(0)} · 10–90th {hover.p10.toFixed(0)}–{hover.p90.toFixed(0)}
+            IQR {hover.p25.toFixed(0)}–{hover.p75.toFixed(0)}
           </div>
           <div className="mt-0.5 text-neutral-400 dark:text-neutral-500">{hover.count} readings</div>
         </div>

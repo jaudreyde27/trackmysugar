@@ -10,7 +10,7 @@ const CODE_INFO: Record<string, string> = {
   "99454": "Requires 16+ days of transmitted device data in the calendar month.",
   "99457": "First 20 minutes of RPM treatment management with interactive communication.",
   "99458": "Each additional 20-minute block of interactive RPM time beyond the first.",
-  "95251": "CGM interpretation documented this month (via a logged Chart Review).",
+  "95251": "CGM interpretation documented this month (via a logged Chart Comment).",
 };
 
 function CodeCell({

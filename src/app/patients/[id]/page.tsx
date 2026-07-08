@@ -22,7 +22,6 @@ import { TrendsPanel } from "@/components/trends-panel";
 import { UnsavedGuardProvider } from "@/components/unsaved-guard";
 import { ChartReviewTimerProvider, ChartReviewLockOverlay } from "@/components/chart-review-timer";
 import { generateNotesSummary } from "@/lib/ai/notes-summary";
-import { disconnectDexcom } from "@/app/actions/dexcom";
 import { EnrollmentLinkButton } from "@/components/enrollment-link-button";
 import { GuardedLink } from "@/components/guarded-link";
 
@@ -50,7 +49,6 @@ export default async function PatientDetailPage({
 
   await logAudit({ staffUserId: session.staffUser.id, patientId: id, action: "PATIENT_VIEWED" });
 
-  const boundDisconnectDexcom = disconnectDexcom.bind(null, patient.id);
   const activeCallSession = patient.activeCallSession;
 
   const pastSessions = patient.recentMonitoringSessions.filter((s) => s.id !== activeCallSession?.id);
@@ -165,22 +163,12 @@ export default async function PatientDetailPage({
                         />
                         <div className="flex items-center gap-3">
                           <DaysTransmittedCounter count={patient.r30Count} />
-                          {patient.cgmDevice &&
-                            (patient.connectionState === "ACTIVE" ? (
-                              <form action={boundDisconnectDexcom}>
-                                <button
-                                  type="submit"
-                                  className="text-xs font-medium text-neutral-500 underline hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
-                                >
-                                  Disconnect
-                                </button>
-                              </form>
-                            ) : (
-                              <EnrollmentLinkButton
-                                patientId={patient.id}
-                                isError={patient.connectionState === "ERROR"}
-                              />
-                            ))}
+                          {patient.cgmDevice && patient.connectionState !== "ACTIVE" && (
+                            <EnrollmentLinkButton
+                              patientId={patient.id}
+                              isError={patient.connectionState === "ERROR"}
+                            />
+                          )}
                         </div>
                       </div>
                       <div className="mt-3">

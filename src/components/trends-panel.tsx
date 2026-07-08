@@ -47,10 +47,6 @@ export function TrendsPanel({ readings }: { readings: Reading[] }) {
 
       <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-neutral-200 pt-3 text-xs text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-4 rounded-sm" style={{ backgroundColor: "#2a78d6", opacity: 0.1 }} />
-          10th–90th percentile
-        </span>
-        <span className="inline-flex items-center gap-1.5">
           <span className="h-2.5 w-4 rounded-sm" style={{ backgroundColor: "#2a78d6", opacity: 0.22 }} />
           25th–75th percentile (IQR)
         </span>

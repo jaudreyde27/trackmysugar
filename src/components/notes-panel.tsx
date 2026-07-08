@@ -93,7 +93,7 @@ export function NotesPanel({
   }
 
   // Templates are independently toggleable — several can be active at
-  // once (e.g. "Left Voicemail" + "Chart Review" on the same visit).
+  // once (e.g. "Left Voicemail" + "Chart Comment" on the same visit).
   // Selecting a chip appends its boilerplate; deselecting it pulls just
   // that boilerplate back out, leaving the rest of the note untouched.
   function handleChipClick(label: string, boilerplate: string) {

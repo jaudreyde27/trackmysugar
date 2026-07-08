@@ -6,13 +6,15 @@ export const R30_WINDOW_DAYS = 30;
 
 // Fixed platform-wide quick-note templates for the Notes panel — not
 // org-configurable. `label` is the chip text; `boilerplate` is appended to
-// the note body when clicked. "Chart Review" doubles as the machine-checked
-// proxy for CPT 95251 (CGM interpretation documented) — see
-// src/lib/data/monitoring.ts.
+// the note body when clicked. "RPM Completed" is the only one that counts
+// as a CDCES visit/touchpoint (see getLastTouchpointFor* in
+// src/lib/data/monitoring.ts) — the rest are notes only, aggregated on the
+// patient page but not counted as a visit. "Chart Comment" doubles as the
+// machine-checked proxy for CPT 95251 (CGM interpretation documented) —
+// see hasCgmInterpretationForMonth in src/lib/data/monitoring.ts.
 export const NOTE_TEMPLATES = [
-  { label: "Initial RPM Completed", boilerplate: "Initial RPM setup and patient education completed." },
-  { label: "Follow-up RPM Completed", boilerplate: "Follow-up RPM check-in completed." },
+  { label: "RPM Completed", boilerplate: "RPM check-in completed." },
   { label: "Left Voicemail", boilerplate: "Attempted to reach patient by phone; left voicemail." },
   { label: "Unable to Leave Voicemail", boilerplate: "Attempted to reach patient by phone; unable to leave voicemail." },
-  { label: "Chart Review", boilerplate: "Reviewed CGM data and chart for this reporting period." },
+  { label: "Chart Comment", boilerplate: "Reviewed CGM data and chart for this reporting period." },
 ] as const;
