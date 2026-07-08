@@ -2,8 +2,12 @@
 // See /docs/HIPAA.md for the compliance rationale behind the audit/session/encryption models.
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider      = "prisma-client"
+  output        = "../src/generated/prisma"
+  // Vercel's build container and its actual function runtime differ in
+  // OS/OpenSSL, so the engine built for "native" (the build machine) isn't
+  // what the deployed function needs at runtime — bundle both explicitly.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
