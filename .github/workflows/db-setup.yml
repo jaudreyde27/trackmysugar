@@ -1,0 +1,38 @@
+name: Database setup (migrate + seed)
+
+# Manually triggered from the Actions tab in the GitHub web UI — runs the
+# one-time (or occasional) database migration/seed on GitHub's servers
+# instead of a local machine. Requires a repo secret named DATABASE_URL
+# pointing at the target Postgres instance (Settings -> Secrets and
+# variables -> Actions -> New repository secret).
+on:
+  workflow_dispatch:
+    inputs:
+      run_seed:
+        description: "Also load demo/seed data (leave unchecked to only apply pending migrations)"
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  db-setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm install
+
+      - name: Apply pending migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Load seed/demo data
+        if: ${{ inputs.run_seed }}
+        run: npm run db:seed
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

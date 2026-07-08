@@ -53,12 +53,24 @@ for local dev — you need a real reachable Postgres instance.
 
 1. Create a Neon project, copy the connection string it gives you (it looks
    like `postgresql://user:pass@ep-xxx.neon.tech/dbname?sslmode=require`).
-2. From your machine, point Prisma at it and run migrations + seed once:
-   ```bash
-   DATABASE_URL="<neon-connection-string>" npx prisma migrate deploy
-   DATABASE_URL="<neon-connection-string>" npm run db:seed
-   ```
-   Do this from your own machine, not as part of the Vercel build — you
+2. Run migrations + seed once, using **either** of:
+   - **From your own machine**, if you've got Node installed and don't mind a
+     terminal:
+     ```bash
+     DATABASE_URL="<neon-connection-string>" npx prisma migrate deploy
+     DATABASE_URL="<neon-connection-string>" npm run db:seed
+     ```
+   - **From GitHub Actions** (`.github/workflows/db-setup.yml`), if you'd
+     rather not run anything locally: add a repo secret named
+     `DATABASE_URL` (Settings → Secrets and variables → Actions → New
+     repository secret) with the Neon connection string, then go to the
+     **Actions** tab → **Database setup (migrate + seed)** → **Run
+     workflow**. Runs entirely on GitHub's servers — nothing installed or
+     computed on your machine, and it works identically from any device you
+     log into GitHub from. Uncheck "run_seed" on any re-run after the first
+     (the seed data isn't safe to load twice).
+
+   Either way, do this as a one-off, not as part of the Vercel build — you
    don't want migrations/seeding re-running on every deploy.
 
 ## 2. Connect the repo to Vercel
