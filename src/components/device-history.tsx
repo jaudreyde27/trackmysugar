@@ -1,5 +1,5 @@
 import type { DeviceHistoryEntry } from "@/lib/data/patient-detail";
-import type { CgmDevice, InsulinDeliveryDevice } from "@/generated/prisma/client";
+import type { CgmDevice, InsulinDeliveryDevice } from "@prisma/client";
 
 const CGM_LABELS: Record<CgmDevice, string> = {
   DEXCOM: "Dexcom",

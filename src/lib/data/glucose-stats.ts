@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@prisma/client";
 
 // Standard CGM ranges (mg/dL) per ADA/AACE consensus reporting.
 export const RANGE_VERY_LOW = 54;

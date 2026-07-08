@@ -2,11 +2,14 @@
 // See /docs/HIPAA.md for the compliance rationale behind the audit/session/encryption models.
 
 generator client {
-  provider      = "prisma-client"
-  output        = "../src/generated/prisma"
-  // Vercel's build container and its actual function runtime differ in
-  // OS/OpenSSL, so the engine built for "native" (the build machine) isn't
-  // what the deployed function needs at runtime — bundle both explicitly.
+  // Deliberately the default node_modules/@prisma/client output, imported
+  // as "@prisma/client" everywhere — Next.js has built-in special handling
+  // (serverExternalPackages) that correctly bundles Prisma's native engine
+  // binary for serverless deployment only when it's at this conventional
+  // location. A custom output path (what this used to be) bypasses that
+  // handling, gets bundled as regular source by Turbopack, and breaks
+  // Prisma's runtime-relative engine lookup on Vercel.
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 

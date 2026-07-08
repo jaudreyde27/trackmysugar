@@ -1,5 +1,5 @@
 import type { ComplianceMonth } from "@/lib/data/billing";
-import type { InsurancePolicy } from "@/generated/prisma/client";
+import type { InsurancePolicy } from "@prisma/client";
 
 function formatDate(date: Date | string | null): string {
   if (!date) return "—";

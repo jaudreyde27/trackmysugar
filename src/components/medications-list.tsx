@@ -1,4 +1,4 @@
-import type { Medication } from "@/generated/prisma/client";
+import type { Medication } from "@prisma/client";
 
 export function MedicationsList({ medications }: { medications: Medication[] }) {
   if (medications.length === 0) {

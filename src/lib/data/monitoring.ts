@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import type { MonitoringSession } from "@/generated/prisma/client";
+import type { MonitoringSession } from "@prisma/client";
 
 export type MonitoringSessionWithStaff = MonitoringSession & {
   staffUser: { name: string };

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { encryptSecret, decryptSecret } from "@/lib/crypto";
 import { refreshDexcomToken } from "@/lib/dexcom/client";
 import { getDexcomEnvironment } from "@/lib/dexcom/config";
-import type { DexcomConnection } from "@/generated/prisma/client";
+import type { DexcomConnection } from "@prisma/client";
 import type { DexcomTokenResponse } from "@/lib/dexcom/types";
 
 const REFRESH_BUFFER_MS = 5 * 60 * 1000;

@@ -6,7 +6,7 @@ import {
   getDexcomRedirectUri,
 } from "@/lib/dexcom/config";
 import type { DexcomEgvResponse, DexcomTokenResponse, DexcomTrend } from "@/lib/dexcom/types";
-import { EgvTrend } from "@/generated/prisma/client";
+import { EgvTrend } from "@prisma/client";
 
 const DEXCOM_DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
 

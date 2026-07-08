@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DisclosureToggle } from "@/components/disclosure-toggle";
 import type { ContactInfo } from "@/lib/data/patient-detail";
-import type { PhoneType, InsuranceRank, SubscriberRelationship } from "@/generated/prisma/client";
+import type { PhoneType, InsuranceRank, SubscriberRelationship } from "@prisma/client";
 
 const PHONE_LABELS: Record<PhoneType, string> = {
   MOBILE: "Mobile",

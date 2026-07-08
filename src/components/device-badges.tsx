@@ -1,5 +1,5 @@
 import type { ComponentType, SVGProps } from "react";
-import type { CgmDevice, InsulinDeliveryDevice } from "@/generated/prisma/client";
+import type { CgmDevice, InsulinDeliveryDevice } from "@prisma/client";
 import {
   DexcomIcon,
   LibreIcon,

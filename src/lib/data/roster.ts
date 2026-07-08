@@ -4,7 +4,7 @@ import { getGlucoseStatsForAllPatients, type GlucoseStats } from "@/lib/data/glu
 import { getR30CountsForAllPatients } from "@/lib/sync/streak";
 import { getLastTouchpointForAllPatients } from "@/lib/data/monitoring";
 import { computeGRI } from "@/lib/gri";
-import type { CgmDevice, InsulinDeliveryDevice } from "@/generated/prisma/client";
+import type { CgmDevice, InsulinDeliveryDevice } from "@prisma/client";
 
 export type ConnectionState = "NOT_CONNECTED" | "PENDING" | "ACTIVE" | "ERROR" | "REVOKED";
 

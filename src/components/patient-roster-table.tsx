@@ -10,7 +10,7 @@ import { TimeInRangeBreakdown } from "@/components/time-in-range-breakdown";
 import { GriZoneBadge } from "@/components/gri-zone-badge";
 import type { GlucoseStats } from "@/lib/data/glucose-stats";
 import type { ConnectionState } from "@/lib/data/roster";
-import type { CgmDevice, InsulinDeliveryDevice } from "@/generated/prisma/client";
+import type { CgmDevice, InsulinDeliveryDevice } from "@prisma/client";
 
 // Dates arrive as ISO strings — Server Components serialize props to the
 // client, and formatting only ever needs string slicing/Date parsing here.

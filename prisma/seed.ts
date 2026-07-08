@@ -12,7 +12,7 @@ import {
   PhoneType,
   InsuranceRank,
   SubscriberRelationship,
-} from "../src/generated/prisma/client";
+} from "@prisma/client";
 import { hash } from "bcryptjs";
 
 const prisma = new PrismaClient();

@@ -20,7 +20,7 @@ import type {
   MonitoringSession,
   PhoneType,
   DeviceCategory,
-} from "@/generated/prisma/client";
+} from "@prisma/client";
 
 export type DeviceHistoryEntry = {
   category: DeviceCategory;

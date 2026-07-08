@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import type { Medication } from "@/generated/prisma/client";
+import type { Medication } from "@prisma/client";
 
 export function getActiveMedications(patientId: string): Promise<Medication[]> {
   return prisma.medication.findMany({
