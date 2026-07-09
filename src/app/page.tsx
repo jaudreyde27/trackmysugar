@@ -1,6 +1,6 @@
 import { verifySession } from "@/lib/auth/dal";
 import { getPatientRoster } from "@/lib/data/roster";
-import { TopNav } from "@/components/top-nav";
+import { AppShell } from "@/components/app-shell";
 import { PatientRosterTable, type RosterRow } from "@/components/patient-roster-table";
 
 export default async function HomePage() {
@@ -10,21 +10,13 @@ export default async function HomePage() {
   // roster to show them here — their view lives under /admin instead.
   if (!session.staffUser.organizationId) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <TopNav
-          staffName={session.staffUser.name}
-          isPlatformAdmin={session.staffUser.isPlatformAdmin}
-          hasOrganization={!!session.staffUser.organizationId}
-          portalType={session.staffUser.portalType}
-          accessibleOrganizations={session.accessibleOrganizations}
-          currentOrganizationId={session.staffUser.organizationId}
-        />
+      <AppShell session={session}>
         <main className="mx-auto w-full max-w-[1800px] flex-1 px-6 py-8">
           <p className="text-sm text-neutral-500 dark:text-neutral-400">
             This account isn&apos;t attached to a clinic. Platform admin tools live under Admin.
           </p>
         </main>
-      </div>
+      </AppShell>
     );
   }
 
@@ -51,16 +43,8 @@ export default async function HomePage() {
   }));
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <TopNav
-        staffName={session.staffUser.name}
-        isPlatformAdmin={session.staffUser.isPlatformAdmin}
-        hasOrganization={!!session.staffUser.organizationId}
-        portalType={session.staffUser.portalType}
-        accessibleOrganizations={session.accessibleOrganizations}
-        currentOrganizationId={session.staffUser.organizationId}
-      />
-      <main className="mx-auto w-full max-w-[1800px] flex-1 px-6 py-8">
+    <AppShell session={session}>
+      <main className="mx-auto w-full max-w-[1800px] flex-1 px-4 py-8">
         <h1 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
           {session.staffUser.organizationName} — Practice Overview
         </h1>
@@ -69,6 +53,6 @@ export default async function HomePage() {
           <PatientRosterTable roster={rows} />
         </div>
       </main>
-    </div>
+    </AppShell>
   );
 }

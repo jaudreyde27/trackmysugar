@@ -1,5 +1,5 @@
 import { requirePlatformAdmin } from "@/lib/auth/dal";
-import { TopNav } from "@/components/top-nav";
+import { AppShell } from "@/components/app-shell";
 import { AdminSidebar } from "@/components/admin-sidebar";
 import { StaffPerformanceView } from "@/components/staff-performance-view";
 import { getStaffPerformanceForMonth } from "@/lib/data/staff-performance";
@@ -33,8 +33,7 @@ export default async function AdminOverviewReportsPage({
   const yearOptions = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <TopNav staffName={session.staffUser.name} isPlatformAdmin />
+    <AppShell session={session}>
       <main className="mx-auto flex w-full max-w-[1400px] flex-1 gap-6 px-6 py-8">
         <AdminSidebar active="Overview Reports" orgName="All Accounts" />
         <div className="flex-1">
@@ -129,6 +128,6 @@ export default async function AdminOverviewReportsPage({
           </div>
         </div>
       </main>
-    </div>
+    </AppShell>
   );
 }

@@ -4,7 +4,7 @@ import { verifySession } from "@/lib/auth/dal";
 import { getBillingRosterForMonth, estimatedDollarsFor } from "@/lib/data/billing";
 import { getBillingBatchForPeriod, listBillingBatchPeriods } from "@/lib/data/rpm-billing-batch";
 import { generateMonthlyBatch } from "@/app/actions/rpm-billing-batch";
-import { TopNav } from "@/components/top-nav";
+import { AppShell } from "@/components/app-shell";
 import { BillingTable } from "@/components/billing-table";
 import { BillingPeriodSelector } from "@/components/billing-period-selector";
 import { PrintButton } from "@/components/print-button";
@@ -39,15 +39,7 @@ export default async function BillingPage({
   ).sort((a, b) => a - b);
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <TopNav
-        staffName={session.staffUser.name}
-        isPlatformAdmin={session.staffUser.isPlatformAdmin}
-        hasOrganization={!!session.staffUser.organizationId}
-        portalType={session.staffUser.portalType}
-        accessibleOrganizations={session.accessibleOrganizations}
-        currentOrganizationId={session.staffUser.organizationId}
-      />
+    <AppShell session={session}>
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
         <Link href="/" className="text-sm text-neutral-500 hover:underline dark:text-neutral-400">
           ← Practice overview
@@ -180,6 +172,6 @@ export default async function BillingPage({
           <BillingTable rows={rows} year={year} month={month} />
         </div>
       </main>
-    </div>
+    </AppShell>
   );
 }

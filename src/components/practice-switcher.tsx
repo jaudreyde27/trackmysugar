@@ -29,7 +29,7 @@ export function PracticeSwitcher({
         defaultValue={currentOrganizationId ?? organizations[0].id}
         onChange={() => attemptNavigate(() => formRef.current?.requestSubmit())}
         aria-label="Switch practice"
-        className="rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm text-neutral-700 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-300"
+        className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-neutral-200"
       >
         {organizations.map((org) => (
           <option key={org.id} value={org.id}>
