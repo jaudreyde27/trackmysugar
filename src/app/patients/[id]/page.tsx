@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { verifySession } from "@/lib/auth/dal";
 import { getPatientDetail } from "@/lib/data/patient-detail";
 import { logAudit } from "@/lib/audit";
-import { TopNav } from "@/components/top-nav";
+import { AppShell } from "@/components/app-shell";
 import { StreakCalendar } from "@/components/streak-calendar";
 import { ChartsPanel } from "@/components/charts-panel";
 import { CgmDeviceBadge, PumpDeviceBadge } from "@/components/device-badges";
@@ -192,15 +192,7 @@ export default async function PatientDetailPage({
 
   return (
     <UnsavedGuardProvider>
-      <div className="flex min-h-screen flex-col">
-        <TopNav
-          staffName={session.staffUser.name}
-          isPlatformAdmin={session.staffUser.isPlatformAdmin}
-          hasOrganization={!!session.staffUser.organizationId}
-          portalType={session.staffUser.portalType}
-          accessibleOrganizations={session.accessibleOrganizations}
-          currentOrganizationId={session.staffUser.organizationId}
-        />
+      <AppShell session={session}>
         <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
         <GuardedLink href="/" className="text-sm text-neutral-500 hover:underline dark:text-neutral-400">
           ← Practice overview
@@ -260,7 +252,7 @@ export default async function PatientDetailPage({
           recordSection
         )}
         </main>
-      </div>
+      </AppShell>
     </UnsavedGuardProvider>
   );
 }

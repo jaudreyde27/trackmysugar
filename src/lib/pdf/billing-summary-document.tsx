@@ -45,10 +45,11 @@ export function BillingSummaryDocument({
             <Text style={styles.cell}>RPM (min)</Text>
             <Text style={styles.cell}>Days</Text>
             <Text style={styles.cell}>99453</Text>
+            <Text style={styles.cell}>99445</Text>
             <Text style={styles.cell}>99454</Text>
+            <Text style={styles.cell}>99470</Text>
             <Text style={styles.cell}>99457</Text>
             <Text style={styles.cell}>99458</Text>
-            <Text style={styles.cell}>95251</Text>
             <Text style={styles.cell}>Status</Text>
           </View>
           {rows.map((row) => (
@@ -59,10 +60,11 @@ export function BillingSummaryDocument({
               <Text style={styles.cell}>{row.eligibility.monitoringMinutes.toFixed(1)}</Text>
               <Text style={styles.cell}>{row.eligibility.daysOfReadings}</Text>
               <Text style={styles.cell}>{mark(row.eligibility.code99453)}</Text>
+              <Text style={styles.cell}>{mark(row.eligibility.code99445)}</Text>
               <Text style={styles.cell}>{mark(row.eligibility.code99454)}</Text>
+              <Text style={styles.cell}>{mark(row.eligibility.code99470)}</Text>
               <Text style={styles.cell}>{mark(row.eligibility.code99457)}</Text>
               <Text style={styles.cell}>{mark(row.eligibility.code99458)}</Text>
-              <Text style={styles.cell}>{mark(row.eligibility.code95251)}</Text>
               <Text style={styles.cell}>{row.status}</Text>
             </View>
           ))}

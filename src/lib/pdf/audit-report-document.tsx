@@ -51,10 +51,11 @@ export function AuditReportDocument({ data }: { data: AuditReportData }) {
   const periodLabel = `${MONTH_NAMES[data.month - 1]} ${data.year}`;
   const billedCodes = [
     eligibility.code99453 && "99453",
+    eligibility.code99445 && "99445",
     eligibility.code99454 && "99454",
+    eligibility.code99470 && "99470",
     eligibility.code99457 && "99457",
     eligibility.code99458 && "99458",
-    eligibility.code95251 && "95251",
   ].filter(Boolean);
 
   return (

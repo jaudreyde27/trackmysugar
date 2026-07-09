@@ -140,10 +140,11 @@ model StaffUser {
   // in. Managed by a future Admin View; seeded directly for now.
   organizationAccess StaffOrganizationAccess[]
 
-  sessions            Session[]
-  auditLogs           AuditLog[]
-  monitoringSessions  MonitoringSession[]
-  billedPeriods       BillingPeriodStatus[]
+  sessions                Session[]
+  auditLogs               AuditLog[]
+  monitoringSessions      MonitoringSession[]
+  billedPeriods           BillingPeriodStatus[]
+  generatedBillingBatches BillingBatch[]
 
   @@index([organizationId])
   @@map("staff_users")
@@ -179,10 +180,21 @@ model Organization {
   // renders a clearly-labeled placeholder pending legal/compliance review.
   rpmConsentTemplate String?
 
+  // Billing-entity identity stamped onto every RPM billing batch line
+  // generated for this practice (Box 33 on a CMS-1500) — one billing
+  // entity per practice, distinct from any individual rendering provider.
+  billingProviderName  String?
+  billingProviderNpi   String?
+  billingProviderTaxId String?
+
   staffUsers         StaffUser[]
   patients           Patient[]
   staffAccess        StaffOrganizationAccess[]
   selectedInSessions Session[]
+  billingBatches     BillingBatch[]
+  rpmBillingLines    RpmBillingLine[]
+  rpmExclusions      RpmExclusion[]
+  reimbursementRates ReimbursementRate[]
 
   @@map("organizations")
 }
@@ -238,7 +250,11 @@ model Patient {
   // The billing/overseeing provider for RPM CPT codes — often distinct
   // from the referring/primary provider above.
   supervisingProviderName String?
-  careManagerName         String?
+  // Rendering-provider NPI stamped onto every RPM billing batch line —
+  // always the supervising physician's, per the general-supervision
+  // billing model, never the CDCES-RN who actually performed the work.
+  supervisingProviderNpi String?
+  careManagerName        String?
 
   // Short standing clinical note shown on the summary card — distinct from
   // the chronological visit-notes log (MonitoringSession.notes).
@@ -247,7 +263,14 @@ model Patient {
   // One-time RPM setup/education checkoff (CPT 99453) — unlike the other
   // billing codes, this doesn't recompute monthly once done.
   cpt99453CompletedAt DateTime?
-  consentDate         DateTime? @db.Date
+  // Distinct from cpt99453CompletedAt above: that's "is the one-time setup
+  // clinically done" (a staff-toggled checkbox); this is "has 99453 ever
+  // actually been included in a generated RPM billing batch." A batch only
+  // includes 99453 when the former is set AND this is still false, then
+  // sets this true — monotonically, never reset — so regenerating a period
+  // after 99453 was already billed once never re-bills it.
+  rpmSetupBilled Boolean @default(false)
+  consentDate    DateTime? @db.Date
 
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -273,6 +296,8 @@ model Patient {
   insurancePolicies     InsurancePolicy[]
   deviceHistory         DeviceHistory[]
   billingPeriodStatuses BillingPeriodStatus[]
+  rpmBillingLines       RpmBillingLine[]
+  rpmExclusions         RpmExclusion[]
 
   @@index([organizationId])
   @@map("patients")
@@ -482,6 +507,107 @@ model BillingPeriodStatus {
 
   @@unique([patientId, year, month])
   @@map("billing_period_statuses")
+}
+
+// One row per practice per (calendar-month) billing period — tracks a
+// formal RPM billing batch generation, distinct from the live/ad-hoc
+// eligibility tracker on the Billing tab. Regenerating a period replaces
+// its RpmBillingLine rows rather than creating a second batch, hence the
+// unique constraint below.
+model BillingBatch {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  periodStart    DateTime     @db.Date
+  periodEnd      DateTime     @db.Date
+  generatedAt    DateTime     @default(now())
+
+  generatedByStaffUserId String?
+  generatedByStaffUser   StaffUser? @relation(fields: [generatedByStaffUserId], references: [id], onDelete: SetNull)
+
+  lines RpmBillingLine[]
+
+  @@unique([organizationId, periodStart, periodEnd])
+  @@map("billing_batches")
+}
+
+// One row per billable CPT code per patient per billing period — the
+// persisted snapshot an RPM billing CSV export is built from. Never
+// computed live; only written by generateMonthlyBatch().
+model RpmBillingLine {
+  id             String       @id @default(cuid())
+  patientId      String
+  patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  batchId        String
+  batch          BillingBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  billingPeriodStart DateTime @db.Date
+  billingPeriodEnd   DateTime @db.Date
+  cptCode            String // "99453" | "99454" | "99457" | "99458"
+  units              Int
+  diagnosisCode      String
+  diagnosisPointer   String  @default("A")
+  placeOfService     String  @default("11")
+  modifier           String?
+
+  // Always the supervising physician's NPI (general-supervision billing
+  // model) — never the CDCES-RN who performed the underlying work.
+  renderingProviderNpi String?
+
+  // units × the org's configured ReimbursementRate for this code at
+  // generation time (Settings → Reimbursement Rates), snapshotted here so
+  // later rate changes don't retroactively alter an already-generated batch.
+  chargeAmount Decimal? @db.Decimal(10, 2)
+
+  billingProviderName  String?
+  billingProviderNpi   String?
+  billingProviderTaxId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([patientId])
+  @@index([batchId])
+  @@map("rpm_billing_lines")
+}
+
+// Patients who didn't meet any billing threshold in a period — logged for
+// transparency (why they're missing from the export), never mixed into
+// RpmBillingLine.
+model RpmExclusion {
+  id             String       @id @default(cuid())
+  patientId      String
+  patient        Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  periodStart    DateTime     @db.Date
+  periodEnd      DateTime     @db.Date
+  reason         String
+
+  createdAt DateTime @default(now())
+
+  @@index([patientId])
+  @@map("rpm_exclusions")
+}
+
+// A practice's own contracted reimbursement rate per RPM CPT code —
+// configured under Settings → Reimbursement Rates. Drives both the
+// Billing tab's dollar totals and the "Charges" column on the CSV export;
+// a code with no row here just hasn't been configured yet (the app falls
+// back to an illustrative default until the practice sets its real rate).
+model ReimbursementRate {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  cptCode        String
+  rate           Decimal      @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, cptCode])
+  @@map("reimbursement_rates")
 }
 
 // HIPAA-minded access log: who looked at (or acted on) which patient, when.

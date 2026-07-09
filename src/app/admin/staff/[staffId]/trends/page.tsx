@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requirePlatformAdmin } from "@/lib/auth/dal";
 import { getStaffTrend } from "@/lib/data/staff-performance";
 import { prisma } from "@/lib/db";
-import { TopNav } from "@/components/top-nav";
+import { AppShell } from "@/components/app-shell";
 
 function formatMinutes(minutes: number): string {
   const total = Math.round(minutes * 60);
@@ -27,8 +27,7 @@ export default async function StaffTrendsPage({
   const max = Math.max(1, ...trend.map((t) => t.monitoringMinutes));
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <TopNav staffName={session.staffUser.name} isPlatformAdmin />
+    <AppShell session={session}>
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-8">
         <Link href="/admin" className="text-sm text-neutral-500 hover:underline dark:text-neutral-400">
           ← Overview reports
@@ -55,6 +54,6 @@ export default async function StaffTrendsPage({
           ))}
         </div>
       </main>
-    </div>
+    </AppShell>
   );
 }

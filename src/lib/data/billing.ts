@@ -1,45 +1,45 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import {
-  getMonthlyMonitoringTotals,
-  hasCgmInterpretationForMonth,
-} from "@/lib/data/monitoring";
+import { getMonthlyMonitoringTotals } from "@/lib/data/monitoring";
+import type { RpmRateMap } from "@/lib/data/reimbursement-rates";
 
-// CMS RPM billing thresholds. 99454 requires 16+ days of transmitted data in
-// the calendar month; 99457 is the first 20 interactive minutes, 99458 each
-// additional 20-minute block beyond that.
+// RPM billing thresholds, as two mutually-exclusive tiers per group (a
+// patient gets at most one code from each group in a given month):
+//   - Device supply/data transmission: 99445 for 2–15 days of transmitted
+//     data, 99454 for 16+ days.
+//   - Treatment management: 99470 for 10–19 interactive minutes, 99457 for
+//     20+. 99458 stacks as additional complete 20-minute blocks beyond the
+//     first 20 (tied to 99457, never paired with 99470).
+const CPT_99445_MIN_DAYS = 2;
+const CPT_99445_MAX_DAYS = 15;
 const CPT_99454_MIN_DAYS = 16;
+const CPT_99470_MIN_MINUTES = 10;
+const CPT_99470_MAX_MINUTES = 19;
 const CPT_99457_MIN_MINUTES = 20;
 const CPT_99458_MIN_MINUTES = 40;
 
-// Approximate national-average non-facility Medicare rates, for
-// illustrative dollar totals only — NOT a real fee schedule. Swap for the
-// org's actual contracted rates before relying on this for real billing.
-export const CPT_APPROX_RATES = {
-  code99453: 19,
-  code99454: 50,
-  code99457: 50,
-  code99458: 40,
-  code95251: 67,
-} as const;
-
-export function estimatedDollarsFor(eligibility: CptEligibility): number {
+// Dollar total for a patient's eligible codes this month, using the
+// practice's own configured rates (Settings → Reimbursement Rates) rather
+// than a hardcoded fee schedule.
+export function estimatedDollarsFor(eligibility: CptEligibility, rates: RpmRateMap): number {
   let total = 0;
-  if (eligibility.code99453) total += CPT_APPROX_RATES.code99453;
-  if (eligibility.code99454) total += CPT_APPROX_RATES.code99454;
-  if (eligibility.code99457) total += CPT_APPROX_RATES.code99457;
-  if (eligibility.code99458) total += CPT_APPROX_RATES.code99458;
-  if (eligibility.code95251) total += CPT_APPROX_RATES.code95251;
+  if (eligibility.code99453) total += rates["99453"];
+  if (eligibility.code99445) total += rates["99445"];
+  if (eligibility.code99454) total += rates["99454"];
+  if (eligibility.code99470) total += rates["99470"];
+  if (eligibility.code99457) total += rates["99457"];
+  if (eligibility.code99458) total += rates["99458"];
   return total;
 }
 
 export type CptEligibility = {
   code99453: boolean; // one-time setup/education checkoff
   code99453CompletedAt: Date | null;
+  code99445: boolean; // 2–15 days of readings this month
   code99454: boolean; // 16+ days of readings this month
-  code99457: boolean; // first 20 interactive minutes
-  code99458: boolean; // additional 20-minute block
-  code95251: boolean; // CGM interpretation documented
+  code99470: boolean; // 10–19 interactive minutes
+  code99457: boolean; // 20+ interactive minutes (first 20 min)
+  code99458: boolean; // additional 20-minute block beyond 99457
   daysOfReadings: number;
   monitoringMinutes: number;
   interactiveMinutes: number;
@@ -58,10 +58,9 @@ export async function getCptEligibilityForMonth(
   year: number,
   month: number
 ): Promise<CptEligibility> {
-  const [daysOfReadings, totals, hasInterpretation] = await Promise.all([
+  const [daysOfReadings, totals] = await Promise.all([
     getDaysOfReadingsForMonth(patient.id, year, month),
     getMonthlyMonitoringTotals(patient.id, year, month),
-    hasCgmInterpretationForMonth(patient.id, year, month),
   ]);
 
   const monitoringMinutes = totals.totalSeconds / 60;
@@ -70,10 +69,11 @@ export async function getCptEligibilityForMonth(
   return {
     code99453: patient.cpt99453CompletedAt != null,
     code99453CompletedAt: patient.cpt99453CompletedAt,
+    code99445: daysOfReadings >= CPT_99445_MIN_DAYS && daysOfReadings <= CPT_99445_MAX_DAYS,
     code99454: daysOfReadings >= CPT_99454_MIN_DAYS,
+    code99470: interactiveMinutes >= CPT_99470_MIN_MINUTES && interactiveMinutes <= CPT_99470_MAX_MINUTES,
     code99457: interactiveMinutes >= CPT_99457_MIN_MINUTES,
     code99458: interactiveMinutes >= CPT_99458_MIN_MINUTES,
-    code95251: hasInterpretation,
     daysOfReadings,
     monitoringMinutes,
     interactiveMinutes,
@@ -124,17 +124,22 @@ export async function getMonitoringMinutesForMonth(
   return totalSeconds / 60;
 }
 
-export type BillingStatus = "billable" | "billed" | "non_billable";
+export type BillingStatus = "billed" | "unbilled";
 
-export function billingStatusFor(eligibility: CptEligibility, markedBilledAt: Date | null): BillingStatus {
-  const hasAnyEligibleCode =
+// The six RPM CPT codes the billing dashboard is oriented around.
+function hasAnyRpmCode(eligibility: CptEligibility): boolean {
+  return (
     eligibility.code99453 ||
+    eligibility.code99445 ||
     eligibility.code99454 ||
+    eligibility.code99470 ||
     eligibility.code99457 ||
-    eligibility.code99458 ||
-    eligibility.code95251;
-  if (!hasAnyEligibleCode) return "non_billable";
-  return markedBilledAt ? "billed" : "billable";
+    eligibility.code99458
+  );
+}
+
+export function billingStatusFor(markedBilledAt: Date | null): BillingStatus {
+  return markedBilledAt ? "billed" : "unbilled";
 }
 
 export type BillingRow = {
@@ -142,12 +147,18 @@ export type BillingRow = {
   mrn: string;
   firstName: string;
   lastName: string;
+  dateOfBirth: Date;
+  supervisingProviderName: string | null;
+  insuranceName: string | null;
+  insuranceMemberId: string | null;
   eligibility: CptEligibility;
   markedBilledAt: Date | null;
   status: BillingStatus;
 };
 
 // Org-wide billing roster for a given month — the Billing tab's main table.
+// Only patients billable on at least one of the six RPM codes this month
+// are returned; the roster is a different set of patients every month.
 export async function getBillingRosterForMonth(
   organizationId: string,
   year: number,
@@ -155,7 +166,16 @@ export async function getBillingRosterForMonth(
 ): Promise<BillingRow[]> {
   const patients = await prisma.patient.findMany({
     where: { organizationId, active: true },
-    select: { id: true, mrn: true, firstName: true, lastName: true, cpt99453CompletedAt: true },
+    select: {
+      id: true,
+      mrn: true,
+      firstName: true,
+      lastName: true,
+      dateOfBirth: true,
+      supervisingProviderName: true,
+      cpt99453CompletedAt: true,
+      insurancePolicies: { where: { rank: "PRIMARY" }, select: { payerName: true, memberId: true } },
+    },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
 
@@ -165,19 +185,26 @@ export async function getBillingRosterForMonth(
   });
   const markedBilledByPatient = new Map(periodStatuses.map((s) => [s.patientId, s.markedBilledAt]));
 
-  return Promise.all(
+  const rows = await Promise.all(
     patients.map(async (patient) => {
       const eligibility = await getCptEligibilityForMonth(patient, year, month);
       const markedBilledAt = markedBilledByPatient.get(patient.id) ?? null;
+      const primaryInsurance = patient.insurancePolicies[0] ?? null;
       return {
         patientId: patient.id,
         mrn: patient.mrn,
         firstName: patient.firstName,
         lastName: patient.lastName,
+        dateOfBirth: patient.dateOfBirth,
+        supervisingProviderName: patient.supervisingProviderName,
+        insuranceName: primaryInsurance?.payerName ?? null,
+        insuranceMemberId: primaryInsurance?.memberId ?? null,
         eligibility,
         markedBilledAt,
-        status: billingStatusFor(eligibility, markedBilledAt),
+        status: billingStatusFor(markedBilledAt),
       };
     })
   );
+
+  return rows.filter((row) => hasAnyRpmCode(row.eligibility));
 }
