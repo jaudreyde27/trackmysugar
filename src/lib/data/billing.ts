@@ -7,9 +7,12 @@ import type { RpmRateMap } from "@/lib/data/reimbursement-rates";
 // patient gets at most one code from each group in a given month):
 //   - Device supply/data transmission: 99445 for 2–15 days of transmitted
 //     data, 99454 for 16+ days.
-//   - Treatment management: 99470 for 10–19 interactive minutes, 99457 for
+//   - Treatment management: 99470 for 10–19 monitoring minutes, 99457 for
 //     20+. 99458 stacks as additional complete 20-minute blocks beyond the
-//     first 20 (tied to 99457, never paired with 99470).
+//     first 20 (tied to 99457, never paired with 99470). Monitoring minutes
+//     count ALL logged MonitoringSession time (calls and notes alike) within
+//     the month, not just interactive-flagged entries — the CDCES's total
+//     time spent monitoring the patient is what these codes bill for.
 const CPT_99445_MIN_DAYS = 2;
 const CPT_99445_MAX_DAYS = 15;
 const CPT_99454_MIN_DAYS = 16;
@@ -37,12 +40,11 @@ export type CptEligibility = {
   code99453CompletedAt: Date | null;
   code99445: boolean; // 2–15 days of readings this month
   code99454: boolean; // 16+ days of readings this month
-  code99470: boolean; // 10–19 interactive minutes
-  code99457: boolean; // 20+ interactive minutes (first 20 min)
+  code99470: boolean; // 10–19 monitoring minutes
+  code99457: boolean; // 20+ monitoring minutes (first 20 min)
   code99458: boolean; // additional 20-minute block beyond 99457
   daysOfReadings: number;
   monitoringMinutes: number;
-  interactiveMinutes: number;
 };
 
 async function getDaysOfReadingsForMonth(patientId: string, year: number, month: number): Promise<number> {
@@ -64,19 +66,17 @@ export async function getCptEligibilityForMonth(
   ]);
 
   const monitoringMinutes = totals.totalSeconds / 60;
-  const interactiveMinutes = totals.interactiveSeconds / 60;
 
   return {
     code99453: patient.cpt99453CompletedAt != null,
     code99453CompletedAt: patient.cpt99453CompletedAt,
     code99445: daysOfReadings >= CPT_99445_MIN_DAYS && daysOfReadings <= CPT_99445_MAX_DAYS,
     code99454: daysOfReadings >= CPT_99454_MIN_DAYS,
-    code99470: interactiveMinutes >= CPT_99470_MIN_MINUTES && interactiveMinutes <= CPT_99470_MAX_MINUTES,
-    code99457: interactiveMinutes >= CPT_99457_MIN_MINUTES,
-    code99458: interactiveMinutes >= CPT_99458_MIN_MINUTES,
+    code99470: monitoringMinutes >= CPT_99470_MIN_MINUTES && monitoringMinutes <= CPT_99470_MAX_MINUTES,
+    code99457: monitoringMinutes >= CPT_99457_MIN_MINUTES,
+    code99458: monitoringMinutes >= CPT_99458_MIN_MINUTES,
     daysOfReadings,
     monitoringMinutes,
-    interactiveMinutes,
   };
 }
 

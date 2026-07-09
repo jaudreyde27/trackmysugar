@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     if (eligibility.code99470) candidates.push({ cptCode: "99470", units: 1 });
     if (eligibility.code99457) candidates.push({ cptCode: "99457", units: 1 });
     if (eligibility.code99458) {
-      candidates.push({ cptCode: "99458", units: Math.floor((eligibility.interactiveMinutes - 20) / 20) });
+      candidates.push({ cptCode: "99458", units: Math.floor((eligibility.monitoringMinutes - 20) / 20) });
     }
 
     if (candidates.length === 0) {
@@ -99,9 +99,9 @@ export async function GET(request: NextRequest) {
       if (eligibility.daysOfReadings < CPT_99445_MIN_DAYS) {
         shortfalls.push(`Transmission days: ${eligibility.daysOfReadings}/${CPT_99445_MIN_DAYS} required`);
       }
-      if (eligibility.interactiveMinutes < CPT_99470_MIN_MINUTES) {
+      if (eligibility.monitoringMinutes < CPT_99470_MIN_MINUTES) {
         shortfalls.push(
-          `Interactive time: ${eligibility.interactiveMinutes.toFixed(0)}/${CPT_99470_MIN_MINUTES} min required`
+          `Monitoring time: ${eligibility.monitoringMinutes.toFixed(0)}/${CPT_99470_MIN_MINUTES} min required`
         );
       }
       excludedRows.push(

@@ -75,12 +75,12 @@ export function getMonitoringSessionsForMonth(
 
 export type MonthlyMonitoringTotals = {
   totalSeconds: number;
-  interactiveSeconds: number;
 };
 
-// interactiveSeconds counts toward 99457/99458 (RPM treatment management
-// WITH interactive communication) — a CALL is inherently interactive; a
-// NOTE/MANUAL entry only counts if the two-way-communication toggle was set.
+// totalSeconds counts ALL logged monitoring time this month — calls and
+// notes alike — toward 99470/99457/99458 (RPM treatment management is
+// billed on total time spent monitoring the patient, not just
+// interactive-flagged entries).
 export async function getMonthlyMonitoringTotals(
   patientId: string,
   year: number,
@@ -91,18 +91,14 @@ export async function getMonthlyMonitoringTotals(
 
   const rows = await prisma.monitoringSession.findMany({
     where: { patientId, occurredAt: { gte: start, lt: end } },
-    select: { durationSeconds: true, source: true, twoWayCommunication: true },
+    select: { durationSeconds: true },
   });
 
   let totalSeconds = 0;
-  let interactiveSeconds = 0;
   for (const row of rows) {
     totalSeconds += row.durationSeconds;
-    if (row.source === "CALL" || row.twoWayCommunication) {
-      interactiveSeconds += row.durationSeconds;
-    }
   }
-  return { totalSeconds, interactiveSeconds };
+  return { totalSeconds };
 }
 
 // Whether a qualifying CGM interpretation was documented this month — the

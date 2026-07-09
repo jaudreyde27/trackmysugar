@@ -5,7 +5,9 @@ import { getMonthlyMonitoringTotals } from "@/lib/data/monitoring";
 import { getReimbursementRatesForOrg, type RpmCptCode } from "@/lib/data/reimbursement-rates";
 
 // Mirrors src/lib/data/billing.ts's thresholds — 99445/99454 and
-// 99470/99457 are mutually-exclusive tiers within their group.
+// 99470/99457 are mutually-exclusive tiers within their group. Time-based
+// codes use total logged monitoring minutes (calls + notes), not just
+// interactive-flagged time.
 const CPT_99445_MIN_DAYS = 2;
 const CPT_99445_MAX_DAYS = 15;
 const CPT_99454_MIN_DAYS = 16;
@@ -82,15 +84,15 @@ export async function generateMonthlyBatch(
       getDaysOfReadingsForMonth(patient.id, year, month),
       getMonthlyMonitoringTotals(patient.id, year, month),
     ]);
-    const interactiveMinutes = totals.interactiveSeconds / 60;
+    const monitoringMinutes = totals.totalSeconds / 60;
 
     const meets99453 = patient.cpt99453CompletedAt != null && !patient.rpmSetupBilled;
     const meets99445 = daysOfReadings >= CPT_99445_MIN_DAYS && daysOfReadings <= CPT_99445_MAX_DAYS;
     const meets99454 = daysOfReadings >= CPT_99454_MIN_DAYS;
-    const meets99470 = interactiveMinutes >= CPT_99470_MIN_MINUTES && interactiveMinutes <= CPT_99470_MAX_MINUTES;
-    const meets99457 = interactiveMinutes >= CPT_99457_MIN_MINUTES;
+    const meets99470 = monitoringMinutes >= CPT_99470_MIN_MINUTES && monitoringMinutes <= CPT_99470_MAX_MINUTES;
+    const meets99457 = monitoringMinutes >= CPT_99457_MIN_MINUTES;
     const additional99458Units = meets99457
-      ? Math.floor((interactiveMinutes - CPT_99457_MIN_MINUTES) / CPT_99458_INCREMENT_MINUTES)
+      ? Math.floor((monitoringMinutes - CPT_99457_MIN_MINUTES) / CPT_99458_INCREMENT_MINUTES)
       : 0;
     const meets99458 = additional99458Units >= 1;
 
@@ -119,7 +121,7 @@ export async function generateMonthlyBatch(
       const shortfalls: string[] = [];
       if (!meets99445 && !meets99454) shortfalls.push(`Transmission days: ${daysOfReadings}/${CPT_99445_MIN_DAYS} required`);
       if (!meets99470 && !meets99457) {
-        shortfalls.push(`Interactive time: ${interactiveMinutes.toFixed(0)}/${CPT_99470_MIN_MINUTES} min required`);
+        shortfalls.push(`Monitoring time: ${monitoringMinutes.toFixed(0)}/${CPT_99470_MIN_MINUTES} min required`);
       }
       await prisma.rpmExclusion.create({
         data: {
