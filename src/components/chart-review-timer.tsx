@@ -111,40 +111,40 @@ function useChartReviewTimer(): ChartReviewTimerContextValue {
 }
 
 // The primary timer control, anchored at the top of the record column
-// (where "Start RPM Call" used to live) — one big click to start or stop,
-// a large readout, and a log button to commit the elapsed time to this
-// patient's monthly RPM monitoring total. Elapsed time persists in
-// localStorage per patient so navigating away and back doesn't lose an
-// unlogged session, but it always resumes paused: leaving the page is
-// never allowed to keep silently racking up time.
+// (where "Start RPM Call" used to live) — click to start or stop, a
+// readout, and a log button to commit the elapsed time to this patient's
+// monthly RPM monitoring total. Elapsed time persists in localStorage per
+// patient so navigating away and back doesn't lose an unlogged session,
+// but it always resumes paused: leaving the page is never allowed to keep
+// silently racking up time.
 export function MassiveChartTimer() {
   const { elapsed, running, logging, toggleRunning, logTime } = useChartReviewTimer();
 
   return (
-    <div className="flex flex-col items-center gap-3 rounded-lg border border-neutral-200 py-6 dark:border-neutral-800">
+    <div className="flex items-center gap-3 rounded-lg border border-neutral-200 px-4 py-3 dark:border-neutral-800">
       <button
         type="button"
         onClick={toggleRunning}
         aria-label={running ? "Pause monitoring timer" : "Start monitoring timer"}
         title={running ? "Pause" : "Start"}
-        className={`flex h-24 w-24 items-center justify-center rounded-full shadow-lg transition-colors ${
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors ${
           running
             ? "bg-red-600 text-white hover:bg-red-700"
             : "bg-accent text-accent-contrast hover:bg-accent-hover"
         }`}
       >
         {running ? (
-          <svg viewBox="0 0 20 20" fill="currentColor" className="h-9 w-9" aria-hidden>
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden>
             <rect x={5} y={4} width={3.5} height={12} rx={1} />
             <rect x={11.5} y={4} width={3.5} height={12} rx={1} />
           </svg>
         ) : (
-          <svg viewBox="0 0 20 20" fill="currentColor" className="h-9 w-9 translate-x-0.5" aria-hidden>
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 translate-x-0.5" aria-hidden>
             <path d="M6 4.5v11l9-5.5-9-5.5z" />
           </svg>
         )}
       </button>
-      <span className="text-3xl font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
+      <span className="flex-1 text-xl font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
         {formatElapsed(elapsed)}
       </span>
       <button
@@ -152,7 +152,7 @@ export function MassiveChartTimer() {
         onClick={() => void logTime()}
         disabled={elapsed === 0 || logging}
         title="Log this time to RPM monitoring"
-        className="rounded-md bg-accent-subtle px-4 py-1.5 text-sm font-medium text-accent hover:bg-accent-subtle/70 disabled:opacity-40"
+        className="rounded-md bg-accent-subtle px-3 py-1.5 text-sm font-medium text-accent hover:bg-accent-subtle/70 disabled:opacity-40"
       >
         {logging ? "Logging…" : "Log time"}
       </button>
@@ -163,17 +163,25 @@ export function MassiveChartTimer() {
 // A floating reminder nudging the CDCES to start the timer — centered on
 // screen (not tucked in a corner) so it can't be missed, but pointer-events
 // only attach to the pill itself so the record underneath stays clickable.
-// Stays hidden until the visitor has scrolled down to the record section
-// (below Contact & Insurance) — no point nagging before there's anything to
-// review — and disappears the moment the timer is running.
+// Stays hidden until the visitor has scrolled down into the glucose stat
+// tiles (Avg glucose / Time in range / Est. A1C) and beyond — no point
+// nagging before there's anything worth reviewing on screen — and
+// disappears the moment the timer is running.
 export function ChartReviewFloatingPrompt() {
   const { running, toggleRunning } = useChartReviewTimer();
   const [reachedRecord, setReachedRecord] = useState(false);
 
   useEffect(() => {
-    const target = document.getElementById("rpm-record-section");
+    const target = document.getElementById("rpm-stat-tiles");
     if (!target) return;
-    const observer = new IntersectionObserver(([entry]) => setReachedRecord(entry.isIntersecting));
+    // Stays visible for the stat tiles and everything below them, not just
+    // while the (short) tile row itself is on screen — so this checks "has
+    // the region's top scrolled above the viewport's bottom edge" rather
+    // than "is it currently intersecting," which would flip back off the
+    // moment the tile row itself scrolls out of view.
+    const observer = new IntersectionObserver(([entry]) => {
+      setReachedRecord(entry.boundingClientRect.top <= window.innerHeight);
+    });
     observer.observe(target);
     return () => observer.disconnect();
   }, []);

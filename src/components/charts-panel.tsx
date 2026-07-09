@@ -150,7 +150,7 @@ export function ChartsPanel({
         </button>
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
+      <div id="rpm-stat-tiles" className="mt-3 grid grid-cols-3 gap-2">
         <StatTile label="Avg glucose" value={stats.averageGlucose != null ? `${stats.averageGlucose.toFixed(0)}` : "—"} />
         <StatTile label="Time in range" value={`${stats.percentInRange.toFixed(0)}%`} />
         <StatTile label="Est. A1C" value={stats.gmi != null ? `${stats.gmi.toFixed(1)}%` : "—"} highlighted={a1cHighlighted} />

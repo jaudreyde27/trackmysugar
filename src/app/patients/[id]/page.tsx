@@ -92,7 +92,7 @@ export default async function PatientDetailPage({
   const hasPump = patient.insulinDeliveryDevice != null && patient.insulinDeliveryDevice !== "MDI";
 
   const recordSection = (
-    <div id="rpm-record-section" className="mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
+    <div className="mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
       <div>
         <PatientTabs
           panels={{
