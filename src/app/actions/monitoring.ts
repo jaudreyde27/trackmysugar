@@ -59,6 +59,63 @@ export async function addManualMonitoringSession(patientId: string, input: AddMa
   return { id: created.id };
 }
 
+export type LogCallTimeInput = {
+  date: string; // YYYY-MM-DD, from the date picker
+  startTime: string; // HH:MM
+  endTime: string; // HH:MM
+};
+
+// The Notes panel's "Log RPM Call Time" form — retroactively logs a call's
+// duration from its date and start/end clock time, rather than timing it
+// live via Start RPM Call. Counts toward the same monthly RPM
+// monitoring-time total as every other logged session (calls and chart
+// time together), and carries no note text of its own.
+export async function logRpmCallTime(patientId: string, input: LogCallTimeInput) {
+  const session = await verifySession();
+  assertCdcesPortal(session);
+  if (!session.staffUser.organizationId) {
+    throw new Error("Patient not found");
+  }
+
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId, organizationId: session.staffUser.organizationId },
+    select: { id: true },
+  });
+  if (!patient) {
+    throw new Error("Patient not found");
+  }
+
+  const startedAt = new Date(`${input.date}T${input.startTime}`);
+  const endedAt = new Date(`${input.date}T${input.endTime}`);
+  if (Number.isNaN(startedAt.getTime()) || Number.isNaN(endedAt.getTime())) {
+    throw new Error("Enter a valid date and time");
+  }
+  const durationSeconds = Math.round((endedAt.getTime() - startedAt.getTime()) / 1000);
+  if (durationSeconds <= 0) {
+    throw new Error("End time must be after start time");
+  }
+
+  const created = await prisma.monitoringSession.create({
+    data: {
+      patientId,
+      staffUserId: session.staffUser.id,
+      source: "MANUAL",
+      occurredAt: startedAt,
+      durationSeconds,
+    },
+  });
+
+  await logAudit({
+    staffUserId: session.staffUser.id,
+    patientId,
+    action: "MONITORING_SESSION_ADDED",
+    metadata: { monitoringSessionId: created.id },
+  });
+
+  revalidatePath(`/patients/${patientId}`);
+  return { id: created.id };
+}
+
 // Only MANUAL entries are removable — CALL/NOTE rows are clinical
 // documentation (talking points, visit notes) and stay part of the record.
 export async function removeMonitoringSession(sessionId: string, patientId: string) {

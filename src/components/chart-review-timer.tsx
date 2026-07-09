@@ -154,22 +154,34 @@ export function ChartReviewTimerControls() {
   );
 }
 
-// A gentle, floating reminder — not a veil over the whole record (too
-// obstructive), just a soft-pulsing pill anchored near the bottom of
-// the screen, nudging the CDCES to start the timer. Disappears the
-// moment it's running; clicking it starts the timer directly.
+// A floating reminder nudging the CDCES to start the timer — centered on
+// screen (not tucked in a corner) so it can't be missed, but pointer-events
+// only attach to the pill itself so the record underneath stays clickable.
+// Stays hidden until the visitor has scrolled down to the record section
+// (below Contact & Insurance) — no point nagging before there's anything to
+// review — and disappears the moment the timer is running.
 export function ChartReviewFloatingPrompt() {
   const { running, toggleRunning } = useChartReviewTimer();
-  if (running) return null;
+  const [reachedRecord, setReachedRecord] = useState(false);
+
+  useEffect(() => {
+    const target = document.getElementById("rpm-record-section");
+    if (!target) return;
+    const observer = new IntersectionObserver(([entry]) => setReachedRecord(entry.isIntersecting));
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
+
+  if (running || !reachedRecord) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center px-4">
+    <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center bg-black/5 px-4 dark:bg-black/25">
       <button
         type="button"
         onClick={toggleRunning}
-        className="pointer-events-auto flex animate-pulse items-center gap-2 rounded-full border border-accent-border bg-white px-5 py-2.5 text-sm font-medium text-accent shadow-lg hover:animate-none hover:bg-accent-subtle dark:bg-neutral-900"
+        className="pointer-events-auto flex animate-pulse items-center gap-2.5 rounded-full border border-accent-border bg-white px-6 py-3.5 text-base font-semibold text-accent shadow-2xl hover:animate-none hover:bg-accent-subtle dark:bg-neutral-900"
       >
-        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden>
+        <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5" aria-hidden>
           <path d="M6 4.5v11l9-5.5-9-5.5z" />
         </svg>
         Press play to start monitoring time

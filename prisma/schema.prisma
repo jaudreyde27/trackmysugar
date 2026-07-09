@@ -105,10 +105,11 @@ enum EgvTrend {
 }
 
 // CALL: created by the live "Start CDCES call" flow (has startedAt/endedAt,
-// talkingPoints). NOTE: created via the Notes panel composer, optionally
-// with Min/Sec monitoring time attached. MANUAL: logged directly on the
-// Monitoring tab's standalone time-entry form. All three roll up into the
-// same monthly compliance/billing totals.
+// talkingPoints). NOTE: created via the Notes panel composer — chart-entry
+// text only, carries no logged time. MANUAL: logged time with no live
+// timer, either the Monitoring tab's standalone duration-entry form or the
+// Notes panel's "Log RPM Call Time" date/start/end form. All three roll up
+// into the same monthly compliance/billing totals.
 enum MonitoringSessionSource {
   CALL
   NOTE

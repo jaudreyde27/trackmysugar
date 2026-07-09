@@ -60,14 +60,19 @@ export default async function PatientDetailPage({
       .map((s) => ({ startedAt: s.occurredAt, notes: s.notes }))
   );
 
-  const noteHistory: NoteHistoryRow[] = pastSessions.map((s) => ({
-    id: s.id,
-    occurredAt: s.occurredAt.toISOString(),
-    notes: s.notes,
-    staffName: s.staffUser.name,
-    source: s.source,
-    durationSeconds: s.durationSeconds,
-  }));
+  // Only sessions with actual note text become a card in the Notes feed —
+  // a call or logged time entry with no notes written is real billable
+  // monitoring time (see RPM History), but not a chart entry to display here.
+  const noteHistory: NoteHistoryRow[] = pastSessions
+    .filter((s) => s.notes.trim().length > 0)
+    .map((s) => ({
+      id: s.id,
+      occurredAt: s.occurredAt.toISOString(),
+      notes: s.notes,
+      staffName: s.staffUser.name,
+      source: s.source,
+      durationSeconds: s.durationSeconds,
+    }));
 
   const monitoringRows: MonitoringRow[] = patient.recentMonitoringSessions.map((s) => ({
     id: s.id,
@@ -92,7 +97,7 @@ export default async function PatientDetailPage({
   const hasPump = patient.insulinDeliveryDevice != null && patient.insulinDeliveryDevice !== "MDI";
 
   const recordSection = (
-    <div className="mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
+    <div id="rpm-record-section" className="mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
       <div>
         <PatientTabs
           canManage={canManage}

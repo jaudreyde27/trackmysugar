@@ -8,16 +8,12 @@ import { logAudit } from "@/lib/audit";
 export type AddNoteInput = {
   notes: string;
   occurredAt: string; // ISO datetime from the composer's date/time picker
-  twoWayCommunication: boolean;
-  monitoringMinutes: number;
-  monitoringSeconds: number;
   templateUsed: string | null;
 };
 
-// The Notes panel composer's "Add Note" action — a standalone touchpoint,
-// independent of any live call. When Min/Sec is filled in, this note also
-// counts toward the patient's monthly monitoring-time rollup (billing,
-// compliance history) exactly like a Monitoring-tab manual entry does.
+// The Notes panel composer's "Add Note" action — a standalone chart entry,
+// independent of any live call and carrying no logged time of its own (use
+// "Log RPM Call Time" or the Monitoring tab for that).
 export async function addNote(patientId: string, input: AddNoteInput) {
   const session = await verifySession();
   assertCdcesPortal(session);
@@ -38,8 +34,6 @@ export async function addNote(patientId: string, input: AddNoteInput) {
     throw new Error("Note text is required");
   }
 
-  const durationSeconds =
-    Math.max(0, Math.floor(input.monitoringMinutes)) * 60 + Math.max(0, Math.floor(input.monitoringSeconds));
   const occurredAt = new Date(input.occurredAt);
 
   const created = await prisma.monitoringSession.create({
@@ -48,10 +42,8 @@ export async function addNote(patientId: string, input: AddNoteInput) {
       staffUserId: session.staffUser.id,
       source: "NOTE",
       occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date() : occurredAt,
-      durationSeconds,
       notes,
       templateUsed: input.templateUsed,
-      twoWayCommunication: input.twoWayCommunication,
     },
   });
 

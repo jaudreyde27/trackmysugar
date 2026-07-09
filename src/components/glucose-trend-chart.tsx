@@ -44,6 +44,41 @@ export function GlucoseTrendChart({ readings, dayRange }: { readings: Reading[];
     });
   }, [visibleReadings]);
 
+  // Day boundaries — only meaningful once the window spans more than a
+  // single day (3D/7D), each drawn as a soft vertical divider with the
+  // day's date centered underneath it, like a calendar-column axis.
+  const dayMarkers = useMemo(() => {
+    if (dayRange === 1 || visibleReadings.length === 0) return { dividers: [] as number[], labels: [] as { x: number; label: string }[] };
+
+    const times = visibleReadings.map((r) => new Date(r.systemTime).getTime());
+    const minT = Math.min(...times);
+    const maxT = Math.max(...times);
+    const span = Math.max(maxT - minT, 1);
+    const plotW = WIDTH - PADDING.left - PADDING.right;
+    const xFor = (t: number) => PADDING.left + ((t - minT) / span) * plotW;
+
+    const dayMs = 24 * 60 * 60 * 1000;
+    const firstMidnight = new Date(minT);
+    firstMidnight.setHours(0, 0, 0, 0);
+
+    const dividers: number[] = [];
+    const labels: { x: number; label: string }[] = [];
+    let segStart = minT;
+    for (let dayStart = firstMidnight.getTime(); dayStart <= maxT; dayStart += dayMs) {
+      const dayEnd = dayStart + dayMs;
+      const segEnd = dayEnd < maxT ? dayEnd : maxT;
+      if (dayStart > minT && dayStart < maxT) {
+        dividers.push(xFor(dayStart));
+      }
+      labels.push({
+        x: xFor((segStart + segEnd) / 2),
+        label: new Date(Math.max(dayStart, minT)).toLocaleDateString([], { month: "short", day: "numeric" }),
+      });
+      segStart = segEnd;
+    }
+    return { dividers, labels };
+  }, [visibleReadings, dayRange]);
+
   if (points.length === 0) {
     return (
       <div className="flex h-[220px] items-center justify-center rounded-lg border border-dashed border-neutral-300 text-sm text-neutral-500 dark:border-neutral-700">
@@ -114,6 +149,31 @@ export function GlucoseTrendChart({ readings, dayRange }: { readings: Reading[];
               {v}
             </text>
           </g>
+        ))}
+
+        {/* Day dividers + date ticks (3D/7D only) */}
+        {dayMarkers.dividers.map((x) => (
+          <line
+            key={x}
+            x1={x}
+            x2={x}
+            y1={PADDING.top}
+            y2={HEIGHT - PADDING.bottom}
+            stroke="currentColor"
+            className="text-neutral-200 dark:text-neutral-800"
+            strokeWidth={1}
+          />
+        ))}
+        {dayMarkers.labels.map((l, i) => (
+          <text
+            key={i}
+            x={l.x}
+            y={HEIGHT - PADDING.bottom + 15}
+            textAnchor="middle"
+            className="fill-neutral-400 text-[10px] dark:fill-neutral-500"
+          >
+            {l.label}
+          </text>
         ))}
 
         <path d={path} fill="none" stroke="#2a78d6" strokeWidth={2} strokeLinejoin="round" />

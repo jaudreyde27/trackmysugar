@@ -5,6 +5,7 @@ import { DisclosureToggle } from "@/components/disclosure-toggle";
 import { useUnsavedGuardRegistration } from "@/components/unsaved-guard";
 import { NOTE_TEMPLATES } from "@/lib/constants";
 import { addNote } from "@/app/actions/notes";
+import { logRpmCallTime } from "@/app/actions/monitoring";
 
 export type NoteHistoryRow = {
   id: string;
@@ -32,6 +33,12 @@ function toDatetimeLocalValue(date: Date): string {
   )}`;
 }
 
+function todayDateValue(): string {
+  const d = new Date();
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 const VISIBLE_HISTORY_COUNT = 5;
 
 export function NotesPanel({
@@ -45,19 +52,22 @@ export function NotesPanel({
   aiSummary?: string;
   canManage: boolean;
 }) {
-  const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
+  const [showCallTimeForm, setShowCallTimeForm] = useState(false);
   const [showTemplates, setShowTemplates] = useState(true);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [showKebabMenu, setShowKebabMenu] = useState(false);
 
-  const [twoWayCommunication, setTwoWayCommunication] = useState(false);
-  const [minutes, setMinutes] = useState<string>("");
-  const [seconds, setSeconds] = useState<string>("");
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [occurredAt, setOccurredAt] = useState(() => toDatetimeLocalValue(new Date()));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [callDate, setCallDate] = useState(() => todayDateValue());
+  const [callStartTime, setCallStartTime] = useState("");
+  const [callEndTime, setCallEndTime] = useState("");
+  const [loggingCallTime, setLoggingCallTime] = useState(false);
+  const [callTimeError, setCallTimeError] = useState<string | null>(null);
 
   async function saveNote() {
     if (!notes.trim()) return;
@@ -67,22 +77,32 @@ export function NotesPanel({
       await addNote(patientId, {
         notes,
         occurredAt: new Date(occurredAt).toISOString(),
-        twoWayCommunication,
-        monitoringMinutes: Number(minutes) || 0,
-        monitoringSeconds: Number(seconds) || 0,
         templateUsed: selectedTemplates.length ? selectedTemplates.join(", ") : null,
       });
       setNotes("");
       setSelectedTemplates([]);
-      setMinutes("");
-      setSeconds("");
-      setTwoWayCommunication(false);
       setOccurredAt(toDatetimeLocalValue(new Date()));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save note");
       throw err;
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveCallTime() {
+    if (!callStartTime || !callEndTime) return;
+    setLoggingCallTime(true);
+    setCallTimeError(null);
+    try {
+      await logRpmCallTime(patientId, { date: callDate, startTime: callStartTime, endTime: callEndTime });
+      setCallStartTime("");
+      setCallEndTime("");
+      setCallDate(todayDateValue());
+    } catch (err) {
+      setCallTimeError(err instanceof Error ? err.message : "Failed to log call time");
+    } finally {
+      setLoggingCallTime(false);
     }
   }
 
@@ -149,58 +169,55 @@ export function NotesPanel({
       <>
       <div className="px-4 py-3">
         <DisclosureToggle
-          expanded={showAdditionalInfo}
-          onClick={() => setShowAdditionalInfo((v) => !v)}
-          labelExpanded="Hide additional info"
-          labelCollapsed="Additional info"
+          expanded={showCallTimeForm}
+          onClick={() => setShowCallTimeForm((v) => !v)}
+          labelExpanded="Hide RPM call time form"
+          labelCollapsed="Log RPM Call Time"
           variant="plain"
         />
-        {showAdditionalInfo && (
+        {showCallTimeForm && (
           <div className="mt-2 space-y-3 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-neutral-700 dark:text-neutral-300">Two-way communication</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={twoWayCommunication}
-                onClick={() => setTwoWayCommunication((v) => !v)}
-                className={`relative h-5 w-9 rounded-full transition-colors ${
-                  twoWayCommunication ? "bg-accent" : "bg-neutral-300 dark:bg-neutral-700"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
-                    twoWayCommunication ? "translate-x-4" : "translate-x-0.5"
-                  }`}
-                />
-              </button>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-neutral-700 dark:text-neutral-300">Monitoring time</span>
-              <label className="flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400">
+            <div className="grid grid-cols-3 gap-2">
+              <label className="text-xs text-neutral-500 dark:text-neutral-400">
+                Date
                 <input
-                  type="number"
-                  min={0}
-                  value={minutes}
-                  onChange={(e) => setMinutes(e.target.value)}
-                  placeholder="0"
-                  className="w-14 rounded-md border border-neutral-300 px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-950"
+                  type="date"
+                  value={callDate}
+                  onChange={(e) => setCallDate(e.target.value)}
+                  className="mt-0.5 block w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
                 />
-                Min
               </label>
-              <label className="flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400">
+              <label className="text-xs text-neutral-500 dark:text-neutral-400">
+                Start time
                 <input
-                  type="number"
-                  min={0}
-                  max={59}
-                  value={seconds}
-                  onChange={(e) => setSeconds(e.target.value)}
-                  placeholder="0"
-                  className="w-14 rounded-md border border-neutral-300 px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-950"
+                  type="time"
+                  value={callStartTime}
+                  onChange={(e) => setCallStartTime(e.target.value)}
+                  className="mt-0.5 block w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
                 />
-                Sec
+              </label>
+              <label className="text-xs text-neutral-500 dark:text-neutral-400">
+                End time
+                <input
+                  type="time"
+                  value={callEndTime}
+                  onChange={(e) => setCallEndTime(e.target.value)}
+                  className="mt-0.5 block w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
+                />
               </label>
             </div>
+            {callTimeError && <p className="text-xs text-red-600 dark:text-red-400">{callTimeError}</p>}
+            <button
+              type="button"
+              onClick={() => void saveCallTime()}
+              disabled={loggingCallTime || !callStartTime || !callEndTime}
+              className="w-full rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast hover:bg-accent-hover disabled:opacity-50"
+            >
+              {loggingCallTime ? "Logging…" : "Log call time"}
+            </button>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              Counts toward this patient&apos;s monthly RPM monitoring time alongside live calls and chart time.
+            </p>
           </div>
         )}
       </div>
