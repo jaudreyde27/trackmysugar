@@ -5,7 +5,6 @@ import { getR30Count } from "@/lib/sync/streak";
 import {
   getLastTouchpointForPatient,
   getRecentMonitoringSessions,
-  getActiveCallSession,
   getMonthlyMonitoringTotals,
   type MonitoringSessionWithStaff,
 } from "@/lib/data/monitoring";
@@ -17,7 +16,6 @@ import type {
   InsulinDeliveryDevice,
   Medication,
   InsurancePolicy,
-  MonitoringSession,
   PhoneType,
   DeviceCategory,
 } from "@prisma/client";
@@ -77,7 +75,6 @@ export type PatientDetail = {
   syncDayHistory: Array<{ date: Date; hasData: boolean }>;
   activeMedications: Medication[];
   recentMonitoringSessions: MonitoringSessionWithStaff[];
-  activeCallSession: MonitoringSession | null;
   deviceHistory: DeviceHistoryEntry[];
   complianceHistory: ComplianceMonth[];
   mostRecentReadingAt: Date | null;
@@ -113,7 +110,6 @@ export async function getPatientDetail(
     lastCdcesTouchpointAt,
     activeMedications,
     recentMonitoringSessions,
-    activeCallSession,
     deviceHistory,
     complianceHistory,
     mostRecentReading,
@@ -136,7 +132,6 @@ export async function getPatientDetail(
     getLastTouchpointForPatient(patientId),
     getActiveMedications(patientId),
     getRecentMonitoringSessions(patientId, RECENT_NOTES_LIMIT),
-    getActiveCallSession(patientId),
     prisma.deviceHistory.findMany({
       where: { patientId },
       orderBy: [{ category: "asc" }, { startedAt: "asc" }],
@@ -202,7 +197,6 @@ export async function getPatientDetail(
     syncDayHistory: syncDays,
     activeMedications,
     recentMonitoringSessions,
-    activeCallSession,
     deviceHistory,
     complianceHistory,
     mostRecentReadingAt: mostRecentReading?.systemTime ?? null,

@@ -16,11 +16,10 @@ import { DeviceHistorySection } from "@/components/device-history";
 import { PatientSummaryCard } from "@/components/patient-summary-card";
 import { PatientTabs } from "@/components/patient-tabs";
 import { NotesPanel, type NoteHistoryRow } from "@/components/notes-panel";
-import { CallSection } from "@/components/call-section";
 import { MonitoringTab, type MonitoringRow } from "@/components/monitoring-tab";
 import { TrendsPanel } from "@/components/trends-panel";
 import { UnsavedGuardProvider } from "@/components/unsaved-guard";
-import { ChartReviewTimerProvider, ChartReviewFloatingPrompt } from "@/components/chart-review-timer";
+import { ChartReviewTimerProvider, ChartReviewFloatingPrompt, MassiveChartTimer } from "@/components/chart-review-timer";
 import { generateNotesSummary } from "@/lib/ai/notes-summary";
 import { EnrollmentLinkButton } from "@/components/enrollment-link-button";
 import { GuardedLink } from "@/components/guarded-link";
@@ -50,12 +49,9 @@ export default async function PatientDetailPage({
   await logAudit({ staffUserId: session.staffUser.id, patientId: id, action: "PATIENT_VIEWED" });
 
   const canManage = session.staffUser.portalType === "CDCES";
-  const activeCallSession = patient.activeCallSession;
-
-  const pastSessions = patient.recentMonitoringSessions.filter((s) => s.id !== activeCallSession?.id);
 
   const notesSummary = await generateNotesSummary(
-    pastSessions
+    patient.recentMonitoringSessions
       .filter((s) => s.notes.trim().length > 0)
       .map((s) => ({ startedAt: s.occurredAt, notes: s.notes }))
   );
@@ -63,7 +59,7 @@ export default async function PatientDetailPage({
   // Only sessions with actual note text become a card in the Notes feed —
   // a call or logged time entry with no notes written is real billable
   // monitoring time (see RPM History), but not a chart entry to display here.
-  const noteHistory: NoteHistoryRow[] = pastSessions
+  const noteHistory: NoteHistoryRow[] = patient.recentMonitoringSessions
     .filter((s) => s.notes.trim().length > 0)
     .map((s) => ({
       id: s.id,
@@ -100,7 +96,6 @@ export default async function PatientDetailPage({
     <div id="rpm-record-section" className="mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
       <div>
         <PatientTabs
-          canManage={canManage}
           panels={{
             Readings: (
               <>
@@ -184,7 +179,7 @@ export default async function PatientDetailPage({
       </div>
 
       <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-        <CallSection patientId={patient.id} activeCallSession={activeCallSession} canManage={canManage} />
+        {canManage && <MassiveChartTimer />}
         <NotesPanel
           patientId={patient.id}
           history={noteHistory}

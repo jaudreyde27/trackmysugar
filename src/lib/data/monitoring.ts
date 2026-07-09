@@ -38,13 +38,6 @@ export async function getLastTouchpointForPatient(patientId: string): Promise<Da
   return last?.occurredAt ?? null;
 }
 
-export function getActiveCallSession(patientId: string): Promise<MonitoringSession | null> {
-  return prisma.monitoringSession.findFirst({
-    where: { patientId, source: "CALL", endedAt: null },
-    orderBy: { startedAt: "desc" },
-  });
-}
-
 // Every loggable touchpoint (call, note, or manual entry) — the note
 // history feed on the Readings tab shows all of these, newest first.
 export function getRecentMonitoringSessions(

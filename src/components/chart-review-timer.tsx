@@ -110,45 +110,51 @@ function useChartReviewTimer(): ChartReviewTimerContextValue {
   return ctx;
 }
 
-// The ambient play/pause/+ widget, shown on the tabs bar. Elapsed time
-// persists in localStorage per patient so navigating away and back
-// doesn't lose an unlogged session, but it always resumes paused:
-// leaving the page is never allowed to keep silently racking up time.
-export function ChartReviewTimerControls() {
+// The primary timer control, anchored at the top of the record column
+// (where "Start RPM Call" used to live) — one big click to start or stop,
+// a large readout, and a log button to commit the elapsed time to this
+// patient's monthly RPM monitoring total. Elapsed time persists in
+// localStorage per patient so navigating away and back doesn't lose an
+// unlogged session, but it always resumes paused: leaving the page is
+// never allowed to keep silently racking up time.
+export function MassiveChartTimer() {
   const { elapsed, running, logging, toggleRunning, logTime } = useChartReviewTimer();
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="min-w-[4.75rem] text-right text-sm font-medium tabular-nums text-neutral-700 dark:text-neutral-300">
-        {formatElapsed(elapsed)}
-      </span>
+    <div className="flex flex-col items-center gap-3 rounded-lg border border-neutral-200 py-6 dark:border-neutral-800">
       <button
         type="button"
         onClick={toggleRunning}
-        aria-label={running ? "Pause chart review timer" : "Start chart review timer"}
+        aria-label={running ? "Pause monitoring timer" : "Start monitoring timer"}
         title={running ? "Pause" : "Start"}
-        className="flex h-7 w-7 items-center justify-center rounded-md border border-neutral-300 text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+        className={`flex h-24 w-24 items-center justify-center rounded-full shadow-lg transition-colors ${
+          running
+            ? "bg-red-600 text-white hover:bg-red-700"
+            : "bg-accent text-accent-contrast hover:bg-accent-hover"
+        }`}
       >
         {running ? (
-          <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5" aria-hidden>
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-9 w-9" aria-hidden>
             <rect x={5} y={4} width={3.5} height={12} rx={1} />
             <rect x={11.5} y={4} width={3.5} height={12} rx={1} />
           </svg>
         ) : (
-          <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5" aria-hidden>
+          <svg viewBox="0 0 20 20" fill="currentColor" className="h-9 w-9 translate-x-0.5" aria-hidden>
             <path d="M6 4.5v11l9-5.5-9-5.5z" />
           </svg>
         )}
       </button>
+      <span className="text-3xl font-semibold tabular-nums text-neutral-900 dark:text-neutral-100">
+        {formatElapsed(elapsed)}
+      </span>
       <button
         type="button"
         onClick={() => void logTime()}
         disabled={elapsed === 0 || logging}
-        title="Log this time to Monitoring"
-        aria-label="Log chart review time to Monitoring"
-        className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-sm font-semibold text-accent-contrast hover:bg-accent-hover disabled:opacity-40"
+        title="Log this time to RPM monitoring"
+        className="rounded-md bg-accent-subtle px-4 py-1.5 text-sm font-medium text-accent hover:bg-accent-subtle/70 disabled:opacity-40"
       >
-        +
+        {logging ? "Logging…" : "Log time"}
       </button>
     </div>
   );
