@@ -17,9 +17,9 @@ const SEGMENTS: Array<{ key: keyof TirStats; abbr: string; label: string; color:
 
 const BAR_AREA_HEIGHT = 96;
 
-// Same 5 buckets as TimeInRangeBreakdown, drawn as a bar chart instead of
-// circles — used on the Trends tab, toggled by the same day-range control
-// as the percentile chart above it.
+// Same 5 buckets as TimeInRangeBar, drawn as a vertical bar chart — used on
+// the Trends tab, toggled by the same day-range control as the percentile
+// chart above it.
 export function TimeInRangeBarChart({ stats }: { stats: TirStats }) {
   const hasData = stats.readingCount > 0;
 

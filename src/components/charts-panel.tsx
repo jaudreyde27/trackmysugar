@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { GlucoseTrendChart } from "@/components/glucose-trend-chart";
-import { TimeInRangeBreakdown } from "@/components/time-in-range-breakdown";
+import { TimeInRangeBar } from "@/components/time-in-range-bar";
 import type { GlucoseStats } from "@/lib/data/glucose-stats";
 
 type Reading = { systemTime: string; value: number };
@@ -193,7 +193,7 @@ export function ChartsPanel({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-neutral-200 pt-3 dark:border-neutral-800">
-        <TimeInRangeBreakdown stats={stats} />
+        <TimeInRangeBar stats={stats} />
       </div>
     </div>
   );
