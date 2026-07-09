@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { DeviceBadges } from "@/components/device-badges";
 import { DiagnosisDisplay } from "@/components/diagnosis-display";
 import { R30Badge } from "@/components/r30-badge";
-import { TimeInRangeBreakdown } from "@/components/time-in-range-breakdown";
+import { TimeInRangeBar } from "@/components/time-in-range-bar";
 import { GriZoneBadge } from "@/components/gri-zone-badge";
 import type { GlucoseStats } from "@/lib/data/glucose-stats";
 import type { ConnectionState } from "@/lib/data/roster";
@@ -209,7 +209,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
                 <R30Badge count={patient.r30Count} />
               </td>
               <td className="px-2 py-3">
-                <TimeInRangeBreakdown stats={patient.stats} size="sm" />
+                <TimeInRangeBar stats={patient.stats} size="sm" />
               </td>
               <td className="px-2 py-3 text-center">
                 <GriZoneBadge score={patient.griScore} />

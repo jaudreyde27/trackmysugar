@@ -94,7 +94,7 @@ export function BillingTable({
     await setCpt99453Completed(row.patientId, next);
   }
 
-  const totalColumns = 5 + CODE_GROUPS.flat().length + 1;
+  const totalColumns = 7 + CODE_GROUPS.flat().length + 1;
 
   return (
     <div>
@@ -105,6 +105,8 @@ export function BillingTable({
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2">DOB</th>
               <th className="px-3 py-2">Provider</th>
+              <th className="px-3 py-2">Insurance</th>
+              <th className="px-3 py-2">Insurance Number</th>
               <th className="px-3 py-2 text-center">Transmission Days</th>
               <th className="px-3 py-2 text-center">RPM Time</th>
               {CODE_GROUPS.map((group) =>
@@ -131,6 +133,12 @@ export function BillingTable({
                   <td className="px-3 py-2 text-neutral-600 dark:text-neutral-400">{formatDob(row.dateOfBirth)}</td>
                   <td className="px-3 py-2 text-neutral-600 dark:text-neutral-400">
                     {row.supervisingProviderName ?? "—"}
+                  </td>
+                  <td className="px-3 py-2 text-neutral-600 dark:text-neutral-400">
+                    {row.insuranceName ?? "—"}
+                  </td>
+                  <td className="px-3 py-2 text-neutral-600 dark:text-neutral-400">
+                    {row.insuranceMemberId ?? "—"}
                   </td>
                   <td className="px-3 py-2 text-center tabular-nums text-neutral-600 dark:text-neutral-400">
                     {row.eligibility.daysOfReadings}

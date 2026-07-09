@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { getMonthlyMonitoringTotals } from "@/lib/data/monitoring";
+import { getReimbursementRatesForOrg, type RpmCptCode } from "@/lib/data/reimbursement-rates";
 
 // Mirrors src/lib/data/billing.ts's thresholds — 99445/99454 and
 // 99470/99457 are mutually-exclusive tiers within their group.
@@ -45,10 +46,13 @@ export async function generateMonthlyBatch(
 ): Promise<GenerateBatchResult> {
   const { periodStart, periodEnd } = periodBoundsFor(year, month);
 
-  const organization = await prisma.organization.findUniqueOrThrow({
-    where: { id: organizationId },
-    select: { billingProviderName: true, billingProviderNpi: true, billingProviderTaxId: true },
-  });
+  const [organization, rates] = await Promise.all([
+    prisma.organization.findUniqueOrThrow({
+      where: { id: organizationId },
+      select: { billingProviderName: true, billingProviderNpi: true, billingProviderTaxId: true },
+    }),
+    getReimbursementRatesForOrg(organizationId),
+  ]);
 
   const patients = await prisma.patient.findMany({
     where: { organizationId, active: true },
@@ -131,7 +135,11 @@ export async function generateMonthlyBatch(
     }
 
     await prisma.rpmBillingLine.createMany({
-      data: linesToCreate.map((line) => ({ ...baseLine, ...line })),
+      data: linesToCreate.map((line) => ({
+        ...baseLine,
+        ...line,
+        chargeAmount: rates[line.cptCode as RpmCptCode] * line.units,
+      })),
     });
     lineCount += linesToCreate.length;
 

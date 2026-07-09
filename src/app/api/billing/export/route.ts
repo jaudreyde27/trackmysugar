@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getOptionalSession } from "@/lib/auth/dal";
 import { prisma } from "@/lib/db";
 import { getCptEligibilityForMonth } from "@/lib/data/billing";
+import { getReimbursementRatesForOrg, type RpmCptCode } from "@/lib/data/reimbursement-rates";
 
 // Mirrors the thresholds in src/lib/data/billing.ts — duplicated locally
 // (same convention used by src/lib/data/rpm-billing-batch.ts) since this
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
   const periodStart = new Date(Date.UTC(year, month - 1, 1));
   const periodEnd = new Date(Date.UTC(year, month, 1));
 
-  const [organization, patients] = await Promise.all([
+  const [organization, patients, rates] = await Promise.all([
     prisma.organization.findUniqueOrThrow({
       where: { id: organizationId },
       select: { billingProviderName: true, billingProviderNpi: true, billingProviderTaxId: true },
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest) {
       },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     }),
+    getReimbursementRatesForOrg(organizationId),
   ]);
 
   const header = [
@@ -112,6 +114,7 @@ export async function GET(request: NextRequest) {
     }
 
     for (const candidate of candidates) {
+      const charges = rates[candidate.cptCode as RpmCptCode] * candidate.units;
       rows.push(
         [
           csvEscape(patient.lastName),
@@ -126,7 +129,7 @@ export async function GET(request: NextRequest) {
           candidate.cptCode,
           "",
           "A",
-          "",
+          charges.toFixed(2),
           String(candidate.units),
           patient.supervisingProviderNpi ?? "",
           csvEscape(organization.billingProviderName ?? ""),

@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { getMonthlyMonitoringTotals } from "@/lib/data/monitoring";
+import type { RpmRateMap } from "@/lib/data/reimbursement-rates";
 
 // RPM billing thresholds, as two mutually-exclusive tiers per group (a
 // patient gets at most one code from each group in a given month):
@@ -17,26 +18,17 @@ const CPT_99470_MAX_MINUTES = 19;
 const CPT_99457_MIN_MINUTES = 20;
 const CPT_99458_MIN_MINUTES = 40;
 
-// Approximate national-average non-facility Medicare rates, for
-// illustrative dollar totals only — NOT a real fee schedule. Swap for the
-// org's actual contracted rates before relying on this for real billing.
-export const CPT_APPROX_RATES = {
-  code99453: 19,
-  code99445: 30,
-  code99454: 50,
-  code99470: 30,
-  code99457: 50,
-  code99458: 40,
-} as const;
-
-export function estimatedDollarsFor(eligibility: CptEligibility): number {
+// Dollar total for a patient's eligible codes this month, using the
+// practice's own configured rates (Settings → Reimbursement Rates) rather
+// than a hardcoded fee schedule.
+export function estimatedDollarsFor(eligibility: CptEligibility, rates: RpmRateMap): number {
   let total = 0;
-  if (eligibility.code99453) total += CPT_APPROX_RATES.code99453;
-  if (eligibility.code99445) total += CPT_APPROX_RATES.code99445;
-  if (eligibility.code99454) total += CPT_APPROX_RATES.code99454;
-  if (eligibility.code99470) total += CPT_APPROX_RATES.code99470;
-  if (eligibility.code99457) total += CPT_APPROX_RATES.code99457;
-  if (eligibility.code99458) total += CPT_APPROX_RATES.code99458;
+  if (eligibility.code99453) total += rates["99453"];
+  if (eligibility.code99445) total += rates["99445"];
+  if (eligibility.code99454) total += rates["99454"];
+  if (eligibility.code99470) total += rates["99470"];
+  if (eligibility.code99457) total += rates["99457"];
+  if (eligibility.code99458) total += rates["99458"];
   return total;
 }
 
@@ -157,6 +149,8 @@ export type BillingRow = {
   lastName: string;
   dateOfBirth: Date;
   supervisingProviderName: string | null;
+  insuranceName: string | null;
+  insuranceMemberId: string | null;
   eligibility: CptEligibility;
   markedBilledAt: Date | null;
   status: BillingStatus;
@@ -180,6 +174,7 @@ export async function getBillingRosterForMonth(
       dateOfBirth: true,
       supervisingProviderName: true,
       cpt99453CompletedAt: true,
+      insurancePolicies: { where: { rank: "PRIMARY" }, select: { payerName: true, memberId: true } },
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
@@ -194,6 +189,7 @@ export async function getBillingRosterForMonth(
     patients.map(async (patient) => {
       const eligibility = await getCptEligibilityForMonth(patient, year, month);
       const markedBilledAt = markedBilledByPatient.get(patient.id) ?? null;
+      const primaryInsurance = patient.insurancePolicies[0] ?? null;
       return {
         patientId: patient.id,
         mrn: patient.mrn,
@@ -201,6 +197,8 @@ export async function getBillingRosterForMonth(
         lastName: patient.lastName,
         dateOfBirth: patient.dateOfBirth,
         supervisingProviderName: patient.supervisingProviderName,
+        insuranceName: primaryInsurance?.payerName ?? null,
+        insuranceMemberId: primaryInsurance?.memberId ?? null,
         eligibility,
         markedBilledAt,
         status: billingStatusFor(markedBilledAt),

@@ -194,6 +194,7 @@ model Organization {
   billingBatches     BillingBatch[]
   rpmBillingLines    RpmBillingLine[]
   rpmExclusions      RpmExclusion[]
+  reimbursementRates ReimbursementRate[]
 
   @@map("organizations")
 }
@@ -555,8 +556,9 @@ model RpmBillingLine {
   // model) — never the CDCES-RN who performed the underlying work.
   renderingProviderNpi String?
 
-  // Intentionally always null — the practice's own fee schedule populates
-  // this on their end, not this app.
+  // units × the org's configured ReimbursementRate for this code at
+  // generation time (Settings → Reimbursement Rates), snapshotted here so
+  // later rate changes don't retroactively alter an already-generated batch.
   chargeAmount Decimal? @db.Decimal(10, 2)
 
   billingProviderName  String?
@@ -587,6 +589,25 @@ model RpmExclusion {
 
   @@index([patientId])
   @@map("rpm_exclusions")
+}
+
+// A practice's own contracted reimbursement rate per RPM CPT code —
+// configured under Settings → Reimbursement Rates. Drives both the
+// Billing tab's dollar totals and the "Charges" column on the CSV export;
+// a code with no row here just hasn't been configured yet (the app falls
+// back to an illustrative default until the practice sets its real rate).
+model ReimbursementRate {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  cptCode        String
+  rate           Decimal      @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, cptCode])
+  @@map("reimbursement_rates")
 }
 
 // HIPAA-minded access log: who looked at (or acted on) which patient, when.

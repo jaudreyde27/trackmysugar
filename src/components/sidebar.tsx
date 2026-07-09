@@ -64,6 +64,9 @@ export function Sidebar({ session }: { session: CurrentSession }) {
         <NavLink href="/" label="Patients" active={pathname === "/" || pathname.startsWith("/patients")} />
         <NavLink href="/reports" label="Reports" active={pathname.startsWith("/reports")} />
         {hasOrganization && <NavLink href="/billing" label="Billing" active={pathname.startsWith("/billing")} />}
+        {hasOrganization && staffUser.role === "ADMIN" && (
+          <NavLink href="/settings" label="Settings" active={pathname.startsWith("/settings")} />
+        )}
         {staffUser.isPlatformAdmin && (
           <NavLink href="/admin" label="Admin" active={pathname.startsWith("/admin")} />
         )}
