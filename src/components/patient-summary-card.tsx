@@ -12,7 +12,26 @@ function formatMinutes(minutes: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
+function Field({
+  label,
+  value,
+  highlighted,
+}: {
+  label: string;
+  value: React.ReactNode;
+  highlighted?: boolean;
+}) {
+  if (highlighted) {
+    return (
+      <div className="rounded-md border border-accent-border bg-accent-subtle px-3 py-2">
+        <div className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          {label}
+        </div>
+        <div className="mt-0.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100">{value ?? "—"}</div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
@@ -59,7 +78,11 @@ export function PatientSummaryCard({
           <Field label="RPM consent date" value={formatDate(consentDate)} />
           <Field label="RPM CDCES" value={careManagerName} />
           <Field label="Last live contact" value={formatDate(lastCdcesTouchpointAt)} />
-          <Field label="Time monitoring this month" value={`${formatMinutes(monitoringMinutesThisMonth)} min`} />
+          <Field
+            label="Time monitoring this month"
+            value={`${formatMinutes(monitoringMinutesThisMonth)} min`}
+            highlighted
+          />
         </div>
       </div>
 

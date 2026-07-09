@@ -3,7 +3,6 @@ import { verifySession } from "@/lib/auth/dal";
 import { getPatientDetail } from "@/lib/data/patient-detail";
 import { logAudit } from "@/lib/audit";
 import { AppShell } from "@/components/app-shell";
-import { StreakCalendar } from "@/components/streak-calendar";
 import { ChartsPanel } from "@/components/charts-panel";
 import { CgmDeviceBadge, PumpDeviceBadge } from "@/components/device-badges";
 import { CgmStatusLine } from "@/components/cgm-status";
@@ -118,14 +117,6 @@ export default async function PatientDetailPage({
                         />
                       )}
                     </div>
-                  </div>
-                  <div className="mt-3">
-                    <StreakCalendar
-                      days={patient.syncDayHistory.map((d) => ({
-                        date: new Date(d.date).toISOString().slice(0, 10),
-                        hasData: d.hasData,
-                      }))}
-                    />
                   </div>
                   <div className="mt-3">
                     <ChartsPanel

@@ -72,7 +72,6 @@ export type PatientDetail = {
   lastCdcesTouchpointAt: Date | null;
   statsByWindow: Record<1 | 3 | 7, GlucoseStats>;
   recentReadings: Array<{ systemTime: Date; value: number }>;
-  syncDayHistory: Array<{ date: Date; hasData: boolean }>;
   activeMedications: Medication[];
   recentMonitoringSessions: MonitoringSessionWithStaff[];
   deviceHistory: DeviceHistoryEntry[];
@@ -82,7 +81,6 @@ export type PatientDetail = {
 };
 
 const CHART_WINDOW_DAYS = 90;
-const CALENDAR_WINDOW_DAYS = 30;
 // High enough to cover a patient's full monitoring history in practice —
 // the AI notes synthesis needs every notecard, not just the most recent few.
 const RECENT_NOTES_LIMIT = 100;
@@ -98,14 +96,12 @@ export async function getPatientDetail(
   if (!patient) return null;
 
   const since = new Date(Date.now() - CHART_WINDOW_DAYS * 24 * 60 * 60 * 1000);
-  const calendarSince = new Date(Date.now() - CALENDAR_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
   const [
     stats1,
     stats3,
     stats7,
     recentReadings,
-    syncDays,
     r30Count,
     lastCdcesTouchpointAt,
     activeMedications,
@@ -122,11 +118,6 @@ export async function getPatientDetail(
       where: { patientId, systemTime: { gte: since } },
       orderBy: { systemTime: "asc" },
       select: { systemTime: true, value: true },
-    }),
-    prisma.syncDay.findMany({
-      where: { patientId, date: { gte: calendarSince } },
-      orderBy: { date: "asc" },
-      select: { date: true, hasData: true },
     }),
     getR30Count(patientId),
     getLastTouchpointForPatient(patientId),
@@ -194,7 +185,6 @@ export async function getPatientDetail(
     lastCdcesTouchpointAt,
     statsByWindow: { 1: stats1, 3: stats3, 7: stats7 },
     recentReadings,
-    syncDayHistory: syncDays,
     activeMedications,
     recentMonitoringSessions,
     deviceHistory,

@@ -35,12 +35,6 @@ const VIEW_ICONS = {
       <circle cx={3.2} cy={14.5} r={0.9} fill="currentColor" stroke="none" />
     </svg>
   ),
-  doc: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} className={ICON_CLASS} aria-hidden>
-      <path d="M5.5 2.5h6l3 3v12h-9z" strokeLinejoin="round" />
-      <path d="M11.5 2.5v3h3M7.5 10h5M7.5 13h5" strokeLinecap="round" />
-    </svg>
-  ),
 } as const;
 
 function StatTile({ label, value, highlighted }: { label: string; value: string; highlighted?: boolean }) {
@@ -70,7 +64,7 @@ export function ChartsPanel({
   statsByWindow: Record<DayRange, GlucoseStats>;
 }) {
   const [dayRange, setDayRange] = useState<DayRange>(DEFAULT_DAY_RANGE);
-  const [viewMode, setViewMode] = useState<"chart" | "list" | "doc">("chart");
+  const [viewMode, setViewMode] = useState<"chart" | "list">("chart");
   const [a1cHighlighted, setA1cHighlighted] = useState(false);
 
   const stats = statsByWindow[dayRange];
@@ -120,7 +114,6 @@ export function ChartsPanel({
             [
               { mode: "chart" as const, label: "Chart", icon: VIEW_ICONS.chart },
               { mode: "list" as const, label: "List", icon: VIEW_ICONS.list },
-              { mode: "doc" as const, label: "Doc", icon: VIEW_ICONS.doc },
             ]
           ).map(({ mode, label, icon }) => (
             <button
@@ -185,14 +178,12 @@ export function ChartsPanel({
             )}
           </div>
         )}
-        {viewMode === "doc" && (
-          <div className="flex h-[220px] items-center justify-center rounded-lg border border-dashed border-neutral-300 text-sm text-neutral-500 dark:border-neutral-700">
-            Document view coming soon.
-          </div>
-        )}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-neutral-200 pt-3 dark:border-neutral-800">
+      <div className="mt-3 border-t border-neutral-200 pt-3 dark:border-neutral-800">
+        <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          Time in Range, %
+        </h4>
         <TimeInRangeBar stats={stats} />
       </div>
     </div>
