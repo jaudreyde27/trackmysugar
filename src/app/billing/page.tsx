@@ -32,9 +32,6 @@ export default async function BillingPage({
   const rpmBatchPeriods = await listBillingBatchPeriods(session.staffUser.organizationId);
   const boundGenerateMonthlyBatch = generateMonthlyBatch.bind(null, year, month);
 
-  const billedThisMonth = rows
-    .filter((r) => r.status === "billed")
-    .reduce((sum, r) => sum + estimatedDollarsFor(r.eligibility), 0);
   const totalBillable = rows.reduce((sum, r) => sum + estimatedDollarsFor(r.eligibility), 0);
 
   const yearOptions = Array.from(
@@ -89,18 +86,18 @@ export default async function BillingPage({
         <div className="mt-4 flex flex-wrap gap-4">
           <div className="rounded-lg border border-neutral-200 px-4 py-3 dark:border-neutral-800">
             <div className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-              Billed this month
+              Total Billable This Period
             </div>
             <div className="mt-0.5 text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
-              ${billedThisMonth.toFixed(0)}
+              ${totalBillable.toFixed(0)}
             </div>
           </div>
           <div className="rounded-lg border border-neutral-200 px-4 py-3 dark:border-neutral-800">
             <div className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-              Total billable
+              Total Patients This Period
             </div>
             <div className="mt-0.5 text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
-              ${totalBillable.toFixed(0)}
+              {rows.length}
             </div>
           </div>
         </div>

@@ -146,12 +146,12 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
         <thead className="border-b border-neutral-200 bg-accent-subtle/50 text-xs dark:border-neutral-800 dark:bg-accent-subtle">
           <tr>
             <th className={`px-3 py-3 ${HEADER_CLASS}`}>Patient</th>
-            <th className="px-3 py-3">
+            <th className="px-3 py-3 text-left">
               <SortHeader label="Provider" column="provider" sort={sort} onSort={toggleSort} />
             </th>
             <th className={`px-3 py-3 ${HEADER_CLASS}`}>Primary diagnosis</th>
             <th className={`px-3 py-3 ${HEADER_CLASS}`}>Sensors</th>
-            <th className="px-3 py-3">
+            <th className="px-3 py-3 text-left">
               <SortHeader label="R30" column="r30" sort={sort} onSort={toggleSort} />
             </th>
             <th className={`px-3 py-3 ${HEADER_CLASS}`}>Time in range</th>
@@ -160,10 +160,10 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
             </th>
             <th className={`px-3 py-3 ${HEADER_CLASS}`}>Avg glucose (14d)</th>
             <th className={`px-3 py-3 ${HEADER_CLASS}`}>Last sync</th>
-            <th className="px-3 py-3">
+            <th className="px-3 py-3 text-left">
               <SortHeader label="Enrolled" column="enrolled" sort={sort} onSort={toggleSort} />
             </th>
-            <th className="px-3 py-3">
+            <th className="px-3 py-3 text-left">
               <SortHeader label="Last CDCES touchpoint" column="touchpoint" sort={sort} onSort={toggleSort} />
             </th>
           </tr>
@@ -196,7 +196,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
                   <span className="text-neutral-400 dark:text-neutral-500">Unassigned</span>
                 )}
               </td>
-              <td className="px-3 py-3">
+              <td className="max-w-[170px] px-3 py-3">
                 <DiagnosisDisplay code={patient.primaryDiagnosisCode} />
               </td>
               <td className="px-3 py-3">

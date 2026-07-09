@@ -155,6 +155,8 @@ export type BillingRow = {
   mrn: string;
   firstName: string;
   lastName: string;
+  dateOfBirth: Date;
+  supervisingProviderName: string | null;
   eligibility: CptEligibility;
   markedBilledAt: Date | null;
   status: BillingStatus;
@@ -170,7 +172,15 @@ export async function getBillingRosterForMonth(
 ): Promise<BillingRow[]> {
   const patients = await prisma.patient.findMany({
     where: { organizationId, active: true },
-    select: { id: true, mrn: true, firstName: true, lastName: true, cpt99453CompletedAt: true },
+    select: {
+      id: true,
+      mrn: true,
+      firstName: true,
+      lastName: true,
+      dateOfBirth: true,
+      supervisingProviderName: true,
+      cpt99453CompletedAt: true,
+    },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
 
@@ -189,6 +199,8 @@ export async function getBillingRosterForMonth(
         mrn: patient.mrn,
         firstName: patient.firstName,
         lastName: patient.lastName,
+        dateOfBirth: patient.dateOfBirth,
+        supervisingProviderName: patient.supervisingProviderName,
         eligibility,
         markedBilledAt,
         status: billingStatusFor(markedBilledAt),

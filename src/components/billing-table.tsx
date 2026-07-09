@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { StatusPill } from "@/components/status-pill";
-import { setBilledForPeriod, setCpt99453Completed } from "@/app/actions/billing";
+import { setCpt99453Completed } from "@/app/actions/billing";
 import type { BillingRow } from "@/lib/data/billing";
 
 // The three CPT groups the billing dashboard is oriented around: setup,
@@ -61,6 +60,10 @@ function formatDuration(minutes: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function formatDob(dateOfBirth: Date): string {
+  return new Date(dateOfBirth).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+}
+
 export function BillingTable({
   rows: initialRows,
   year,
@@ -71,18 +74,6 @@ export function BillingTable({
   month: number;
 }) {
   const [rows, setRows] = useState(initialRows);
-
-  async function toggleBilled(row: BillingRow) {
-    const nextBilled = row.status !== "billed";
-    setRows((prev) =>
-      prev.map((r) =>
-        r.patientId === row.patientId
-          ? { ...r, markedBilledAt: nextBilled ? new Date() : null, status: nextBilled ? "billed" : "unbilled" }
-          : r
-      )
-    );
-    await setBilledForPeriod(row.patientId, year, month, nextBilled);
-  }
 
   async function toggle99453(row: BillingRow) {
     const next = !row.eligibility.code99453;
@@ -103,7 +94,7 @@ export function BillingTable({
     await setCpt99453Completed(row.patientId, next);
   }
 
-  const totalColumns = 4 + CODE_GROUPS.flat().length + 2;
+  const totalColumns = 5 + CODE_GROUPS.flat().length + 1;
 
   return (
     <div>
@@ -112,15 +103,15 @@ export function BillingTable({
           <thead>
             <tr className="border-b border-neutral-200 text-left text-xs font-medium uppercase tracking-wide text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
               <th className="px-3 py-2">Name</th>
-              <th className="px-3 py-2 text-center">RPM (time)</th>
-              <th className="px-3 py-2 text-center">Days</th>
-              <th className="px-3 py-2 text-center">Setup</th>
+              <th className="px-3 py-2">DOB</th>
+              <th className="px-3 py-2">Provider</th>
+              <th className="px-3 py-2 text-center">Transmission Days</th>
+              <th className="px-3 py-2 text-center">RPM Time</th>
               {CODE_GROUPS.map((group) =>
                 group.map(({ code, info }, i) => (
                   <CodeHeader key={code} code={code} info={info} groupStart={i === 0} />
                 ))
               )}
-              <th className="px-3 py-2 text-center">Status</th>
               <th className="px-3 py-2" />
             </tr>
           </thead>
@@ -137,20 +128,15 @@ export function BillingTable({
                   <td className="px-3 py-2 text-neutral-800 dark:text-neutral-200">
                     {row.firstName} {row.lastName}
                   </td>
-                  <td className="px-3 py-2 text-center tabular-nums text-neutral-600 dark:text-neutral-400">
-                    {formatDuration(row.eligibility.monitoringMinutes)}
+                  <td className="px-3 py-2 text-neutral-600 dark:text-neutral-400">{formatDob(row.dateOfBirth)}</td>
+                  <td className="px-3 py-2 text-neutral-600 dark:text-neutral-400">
+                    {row.supervisingProviderName ?? "—"}
                   </td>
                   <td className="px-3 py-2 text-center tabular-nums text-neutral-600 dark:text-neutral-400">
                     {row.eligibility.daysOfReadings}
                   </td>
-                  <td className="px-3 py-2 text-center text-xs text-neutral-500 dark:text-neutral-400">
-                    {row.eligibility.code99453CompletedAt
-                      ? new Date(row.eligibility.code99453CompletedAt).toLocaleDateString([], {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      : "—"}
+                  <td className="px-3 py-2 text-center tabular-nums text-neutral-600 dark:text-neutral-400">
+                    {formatDuration(row.eligibility.monitoringMinutes)}
                   </td>
                   <CodeCell met={row.eligibility.code99453} groupStart onClick={() => void toggle99453(row)} />
                   <CodeCell met={row.eligibility.code99445} groupStart />
@@ -158,22 +144,12 @@ export function BillingTable({
                   <CodeCell met={row.eligibility.code99470} groupStart />
                   <CodeCell met={row.eligibility.code99457} groupStart={false} />
                   <CodeCell met={row.eligibility.code99458} groupStart={false} />
-                  <td className="px-3 py-2 text-center">
-                    <button type="button" onClick={() => void toggleBilled(row)}>
-                      <StatusPill
-                        label={row.status === "billed" ? "Billed" : "Unbilled"}
-                        tone={row.status === "billed" ? "compliant" : "in_progress"}
-                      />
-                    </button>
-                  </td>
                   <td className="px-3 py-2 text-right">
                     <a
                       href={`/api/patients/${row.patientId}/audit-report?year=${year}&month=${month}`}
-                      className="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
-                      aria-label="Download audit packet"
-                      title="Download audit packet"
+                      className="inline-block rounded-md border border-neutral-300 px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
                     >
-                      ↓
+                      Audit Report
                     </a>
                   </td>
                 </tr>
