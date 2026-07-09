@@ -6,8 +6,8 @@ import { getCptEligibilityForMonth } from "@/lib/data/billing";
 // Mirrors the thresholds in src/lib/data/billing.ts — duplicated locally
 // (same convention used by src/lib/data/rpm-billing-batch.ts) since this
 // route only needs them for the excluded-patient shortfall message.
-const CPT_99454_MIN_DAYS = 16;
-const CPT_99457_MIN_MINUTES = 20;
+const CPT_99445_MIN_DAYS = 2;
+const CPT_99470_MIN_MINUTES = 10;
 
 function csvEscape(value: string): string {
   if (/[",\n]/.test(value)) {
@@ -84,7 +84,9 @@ export async function GET(request: NextRequest) {
 
     const candidates: Array<{ cptCode: string; units: number }> = [];
     if (eligibility.code99453) candidates.push({ cptCode: "99453", units: 1 });
+    if (eligibility.code99445) candidates.push({ cptCode: "99445", units: 1 });
     if (eligibility.code99454) candidates.push({ cptCode: "99454", units: 1 });
+    if (eligibility.code99470) candidates.push({ cptCode: "99470", units: 1 });
     if (eligibility.code99457) candidates.push({ cptCode: "99457", units: 1 });
     if (eligibility.code99458) {
       candidates.push({ cptCode: "99458", units: Math.floor((eligibility.interactiveMinutes - 20) / 20) });
@@ -92,12 +94,12 @@ export async function GET(request: NextRequest) {
 
     if (candidates.length === 0) {
       const shortfalls: string[] = [];
-      if (eligibility.daysOfReadings < CPT_99454_MIN_DAYS) {
-        shortfalls.push(`Transmission days: ${eligibility.daysOfReadings}/${CPT_99454_MIN_DAYS} required`);
+      if (eligibility.daysOfReadings < CPT_99445_MIN_DAYS) {
+        shortfalls.push(`Transmission days: ${eligibility.daysOfReadings}/${CPT_99445_MIN_DAYS} required`);
       }
-      if (eligibility.interactiveMinutes < CPT_99457_MIN_MINUTES) {
+      if (eligibility.interactiveMinutes < CPT_99470_MIN_MINUTES) {
         shortfalls.push(
-          `Interactive time: ${eligibility.interactiveMinutes.toFixed(0)}/${CPT_99457_MIN_MINUTES} min required`
+          `Interactive time: ${eligibility.interactiveMinutes.toFixed(0)}/${CPT_99470_MIN_MINUTES} min required`
         );
       }
       excludedRows.push(

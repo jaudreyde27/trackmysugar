@@ -6,6 +6,7 @@ import { getBillingBatchForPeriod, listBillingBatchPeriods } from "@/lib/data/rp
 import { generateMonthlyBatch } from "@/app/actions/rpm-billing-batch";
 import { TopNav } from "@/components/top-nav";
 import { BillingTable } from "@/components/billing-table";
+import { BillingPeriodSelector } from "@/components/billing-period-selector";
 import { PrintButton } from "@/components/print-button";
 
 const MONTH_NAMES = [
@@ -34,12 +35,11 @@ export default async function BillingPage({
   const billedThisMonth = rows
     .filter((r) => r.status === "billed")
     .reduce((sum, r) => sum + estimatedDollarsFor(r.eligibility), 0);
-  const totalBillable = rows
-    .filter((r) => r.status === "billable" || r.status === "billed")
-    .reduce((sum, r) => sum + estimatedDollarsFor(r.eligibility), 0);
+  const totalBillable = rows.reduce((sum, r) => sum + estimatedDollarsFor(r.eligibility), 0);
 
-  const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
-  const yearOptions = [now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1];
+  const yearOptions = Array.from(
+    new Set([now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1, year])
+  ).sort((a, b) => a - b);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -61,36 +61,7 @@ export default async function BillingPage({
             RPM Billing ({rows.length})
           </h1>
           <div className="flex items-center gap-2">
-            <form method="get" className="flex items-center gap-2">
-              <select
-                name="month"
-                defaultValue={month}
-                className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
-              >
-                {monthOptions.map((m) => (
-                  <option key={m} value={m}>
-                    {MONTH_NAMES[m - 1]}
-                  </option>
-                ))}
-              </select>
-              <select
-                name="year"
-                defaultValue={year}
-                className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
-              >
-                {yearOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="submit"
-                className="rounded-md border border-neutral-300 px-2.5 py-1.5 text-sm text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
-              >
-                Go
-              </button>
-            </form>
+            <BillingPeriodSelector year={year} month={month} yearOptions={yearOptions} />
             <PrintButton />
             <a
               href={`/api/billing/export-pdf?year=${year}&month=${month}`}

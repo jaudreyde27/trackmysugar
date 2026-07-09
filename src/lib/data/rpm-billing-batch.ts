@@ -3,7 +3,13 @@ import { prisma } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { getMonthlyMonitoringTotals } from "@/lib/data/monitoring";
 
+// Mirrors src/lib/data/billing.ts's thresholds — 99445/99454 and
+// 99470/99457 are mutually-exclusive tiers within their group.
+const CPT_99445_MIN_DAYS = 2;
+const CPT_99445_MAX_DAYS = 15;
 const CPT_99454_MIN_DAYS = 16;
+const CPT_99470_MIN_MINUTES = 10;
+const CPT_99470_MAX_MINUTES = 19;
 const CPT_99457_MIN_MINUTES = 20;
 const CPT_99458_INCREMENT_MINUTES = 20;
 
@@ -75,7 +81,9 @@ export async function generateMonthlyBatch(
     const interactiveMinutes = totals.interactiveSeconds / 60;
 
     const meets99453 = patient.cpt99453CompletedAt != null && !patient.rpmSetupBilled;
+    const meets99445 = daysOfReadings >= CPT_99445_MIN_DAYS && daysOfReadings <= CPT_99445_MAX_DAYS;
     const meets99454 = daysOfReadings >= CPT_99454_MIN_DAYS;
+    const meets99470 = interactiveMinutes >= CPT_99470_MIN_MINUTES && interactiveMinutes <= CPT_99470_MAX_MINUTES;
     const meets99457 = interactiveMinutes >= CPT_99457_MIN_MINUTES;
     const additional99458Units = meets99457
       ? Math.floor((interactiveMinutes - CPT_99457_MIN_MINUTES) / CPT_99458_INCREMENT_MINUTES)
@@ -97,15 +105,17 @@ export async function generateMonthlyBatch(
 
     const linesToCreate: Array<{ cptCode: string; units: number }> = [];
     if (meets99453) linesToCreate.push({ cptCode: "99453", units: 1 });
+    if (meets99445) linesToCreate.push({ cptCode: "99445", units: 1 });
     if (meets99454) linesToCreate.push({ cptCode: "99454", units: 1 });
+    if (meets99470) linesToCreate.push({ cptCode: "99470", units: 1 });
     if (meets99457) linesToCreate.push({ cptCode: "99457", units: 1 });
     if (meets99458) linesToCreate.push({ cptCode: "99458", units: additional99458Units });
 
     if (linesToCreate.length === 0) {
       const shortfalls: string[] = [];
-      if (!meets99454) shortfalls.push(`Transmission days: ${daysOfReadings}/${CPT_99454_MIN_DAYS} required`);
-      if (!meets99457) {
-        shortfalls.push(`Interactive time: ${interactiveMinutes.toFixed(0)}/${CPT_99457_MIN_MINUTES} min required`);
+      if (!meets99445 && !meets99454) shortfalls.push(`Transmission days: ${daysOfReadings}/${CPT_99445_MIN_DAYS} required`);
+      if (!meets99470 && !meets99457) {
+        shortfalls.push(`Interactive time: ${interactiveMinutes.toFixed(0)}/${CPT_99470_MIN_MINUTES} min required`);
       }
       await prisma.rpmExclusion.create({
         data: {

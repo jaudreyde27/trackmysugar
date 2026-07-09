@@ -1,29 +1,45 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { StatusPill } from "@/components/status-pill";
 import { setBilledForPeriod, setCpt99453Completed } from "@/app/actions/billing";
 import type { BillingRow } from "@/lib/data/billing";
 
-const CODE_INFO: Record<string, string> = {
-  "99453": "One-time setup/patient education checkoff — marked manually, doesn't reset monthly.",
-  "99454": "Requires 16+ days of transmitted device data in the calendar month.",
-  "99457": "First 20 minutes of RPM treatment management with interactive communication.",
-  "99458": "Each additional 20-minute block of interactive RPM time beyond the first.",
-  "95251": "CGM interpretation documented this month (via a logged Chart Comment).",
-};
+// The three CPT groups the billing dashboard is oriented around: setup,
+// device supply/data transmission (day-count tiers), and treatment
+// management (interactive-minute tiers). A visual gap separates each group
+// in the table below.
+const CODE_GROUPS: Array<Array<{ code: string; info: string }>> = [
+  [{ code: "99453", info: "RPM initial setup & patient education" }],
+  [
+    { code: "99445", info: "RPM device supply/data transmission (2-15 days)" },
+    { code: "99454", info: "RPM device supply/data transmission (16+ days)" },
+  ],
+  [
+    { code: "99470", info: "RPM treatment management, first 10 min" },
+    { code: "99457", info: "RPM treatment management, first 20 min" },
+    { code: "99458", info: "RPM treatment management, each additional 20 min" },
+  ],
+];
 
-function CodeCell({
-  met,
-  code,
-  onClick,
-}: {
-  met: boolean;
-  code: string;
-  onClick?: () => void;
-}) {
+function CodeHeader({ code, info, groupStart }: { code: string; info: string; groupStart: boolean }) {
   return (
-    <div className="group relative flex items-center justify-center gap-1">
+    <th
+      className={`px-3 py-2 text-center ${groupStart ? "border-l border-neutral-200 dark:border-neutral-800" : ""}`}
+    >
+      <span className="inline-flex items-center gap-1">
+        {code}
+        <span className="cursor-help text-[10px] text-neutral-400" title={info}>
+          ⓘ
+        </span>
+      </span>
+    </th>
+  );
+}
+
+function CodeCell({ met, groupStart, onClick }: { met: boolean; groupStart: boolean; onClick?: () => void }) {
+  return (
+    <td className={`px-3 py-2 text-center ${groupStart ? "border-l border-neutral-200 dark:border-neutral-800" : ""}`}>
       <button
         type="button"
         onClick={onClick}
@@ -31,14 +47,10 @@ function CodeCell({
         className={`text-base ${met ? "text-green-600 dark:text-green-400" : "text-neutral-300 dark:text-neutral-700"} ${
           onClick ? "cursor-pointer hover:opacity-70" : ""
         }`}
-        aria-label={`${code}: ${met ? "met" : "not met"}`}
       >
         {met ? "✓" : "✕"}
       </button>
-      <span className="cursor-help text-[10px] text-neutral-400" title={CODE_INFO[code]}>
-        ⓘ
-      </span>
-    </div>
+    </td>
   );
 }
 
@@ -59,19 +71,13 @@ export function BillingTable({
   month: number;
 }) {
   const [rows, setRows] = useState(initialRows);
-  const [filter, setFilter] = useState<"all" | "billable" | "billed" | "non_billable">("all");
-
-  const filtered = useMemo(
-    () => (filter === "all" ? rows : rows.filter((r) => r.status === filter)),
-    [rows, filter]
-  );
 
   async function toggleBilled(row: BillingRow) {
     const nextBilled = row.status !== "billed";
     setRows((prev) =>
       prev.map((r) =>
         r.patientId === row.patientId
-          ? { ...r, markedBilledAt: nextBilled ? new Date() : null, status: nextBilled ? "billed" : "billable" }
+          ? { ...r, markedBilledAt: nextBilled ? new Date() : null, status: nextBilled ? "billed" : "unbilled" }
           : r
       )
     );
@@ -97,33 +103,11 @@ export function BillingTable({
     await setCpt99453Completed(row.patientId, next);
   }
 
+  const totalColumns = 4 + CODE_GROUPS.flat().length + 2;
+
   return (
     <div>
-      <div className="flex items-center gap-1">
-        {(
-          [
-            { key: "all" as const, label: "All" },
-            { key: "billable" as const, label: "Billable" },
-            { key: "billed" as const, label: "Billed" },
-            { key: "non_billable" as const, label: "Non-billable" },
-          ]
-        ).map(({ key, label }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setFilter(key)}
-            className={
-              key === filter
-                ? "rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-accent-contrast"
-                : "rounded-md px-2.5 py-1 text-xs font-medium text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800"
-            }
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-3 overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
+      <div className="overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-xs font-medium uppercase tracking-wide text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
@@ -131,24 +115,24 @@ export function BillingTable({
               <th className="px-3 py-2 text-center">RPM (time)</th>
               <th className="px-3 py-2 text-center">Days</th>
               <th className="px-3 py-2 text-center">Setup</th>
-              <th className="px-3 py-2 text-center">99453</th>
-              <th className="px-3 py-2 text-center">99454</th>
-              <th className="px-3 py-2 text-center">99457</th>
-              <th className="px-3 py-2 text-center">99458</th>
-              <th className="px-3 py-2 text-center">95251</th>
+              {CODE_GROUPS.map((group) =>
+                group.map(({ code, info }, i) => (
+                  <CodeHeader key={code} code={code} info={info} groupStart={i === 0} />
+                ))
+              )}
               <th className="px-3 py-2 text-center">Status</th>
               <th className="px-3 py-2" />
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
-            {filtered.length === 0 ? (
+            {rows.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-3 py-6 text-center text-neutral-500 dark:text-neutral-400">
-                  No patients in this filter.
+                <td colSpan={totalColumns} className="px-3 py-6 text-center text-neutral-500 dark:text-neutral-400">
+                  No billable patients this period.
                 </td>
               </tr>
             ) : (
-              filtered.map((row) => (
+              rows.map((row) => (
                 <tr key={row.patientId}>
                   <td className="px-3 py-2 text-neutral-800 dark:text-neutral-200">
                     {row.firstName} {row.lastName}
@@ -168,26 +152,17 @@ export function BillingTable({
                         })
                       : "—"}
                   </td>
-                  <td className="px-3 py-2">
-                    <CodeCell met={row.eligibility.code99453} code="99453" onClick={() => void toggle99453(row)} />
-                  </td>
-                  <td className="px-3 py-2">
-                    <CodeCell met={row.eligibility.code99454} code="99454" />
-                  </td>
-                  <td className="px-3 py-2">
-                    <CodeCell met={row.eligibility.code99457} code="99457" />
-                  </td>
-                  <td className="px-3 py-2">
-                    <CodeCell met={row.eligibility.code99458} code="99458" />
-                  </td>
-                  <td className="px-3 py-2">
-                    <CodeCell met={row.eligibility.code95251} code="95251" />
-                  </td>
+                  <CodeCell met={row.eligibility.code99453} groupStart onClick={() => void toggle99453(row)} />
+                  <CodeCell met={row.eligibility.code99445} groupStart />
+                  <CodeCell met={row.eligibility.code99454} groupStart={false} />
+                  <CodeCell met={row.eligibility.code99470} groupStart />
+                  <CodeCell met={row.eligibility.code99457} groupStart={false} />
+                  <CodeCell met={row.eligibility.code99458} groupStart={false} />
                   <td className="px-3 py-2 text-center">
                     <button type="button" onClick={() => void toggleBilled(row)}>
                       <StatusPill
-                        label={row.status === "billed" ? "Billed" : row.status === "billable" ? "Billable" : "Non-billable"}
-                        tone={row.status === "billed" ? "compliant" : row.status === "billable" ? "in_progress" : "non_compliant"}
+                        label={row.status === "billed" ? "Billed" : "Unbilled"}
+                        tone={row.status === "billed" ? "compliant" : "in_progress"}
                       />
                     </button>
                   </td>
