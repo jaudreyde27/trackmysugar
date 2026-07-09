@@ -26,9 +26,15 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (hasSessionCookie && isPublicPath) {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
+  // No "cookie present → bounce /login to /" branch here on purpose: session
+  // invalidation (idle timeout, absolute expiry) revokes the DB row but
+  // never clears the browser cookie, only an explicit logout does. A
+  // cookie-presence-only redirect here would bounce an expired-but-cookied
+  // visitor from /login to / — where the real DB check in verifySession()
+  // rejects the stale session and sends them back to /login — forever.
+  // The login page already does the "already signed in → go home" redirect
+  // itself with a real session check (src/app/login/page.tsx), so this
+  // route is safe to just fall through to.
 
   return NextResponse.next();
 }
