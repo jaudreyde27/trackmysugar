@@ -125,6 +125,9 @@ export default async function PatientDetailPage({
                         value: r.value,
                       }))}
                       statsByWindow={patient.statsByWindow}
+                      lastSyncSuccessAt={
+                        patient.lastSyncSuccessAt ? new Date(patient.lastSyncSuccessAt).toISOString() : null
+                      }
                     />
                   </div>
                 </div>
@@ -159,11 +162,6 @@ export default async function PatientDetailPage({
             Medications: <MedicationsList medications={patient.activeMedications} />,
             "RPM History": (
               <MonitoringTab patientId={patient.id} rows={monitoringRows} canManage={canManage} />
-            ),
-            Docs: (
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                Document uploads aren&apos;t available yet.
-              </p>
             ),
           }}
         />

@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 
-const TABS = ["Readings", "Trends", "Devices", "Medications", "RPM History", "Docs"] as const;
+const TABS = ["Readings", "Trends", "Devices", "Medications", "RPM History"] as const;
 export type PatientTab = (typeof TABS)[number];
 
 export function PatientTabs({ panels }: { panels: Record<PatientTab, React.ReactNode> }) {

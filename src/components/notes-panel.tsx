@@ -26,13 +26,6 @@ function formatDateTime(iso: string): string {
   });
 }
 
-function toDatetimeLocalValue(date: Date): string {
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(
-    date.getMinutes()
-  )}`;
-}
-
 function todayDateValue(): string {
   const d = new Date();
   const pad = (n: number) => n.toString().padStart(2, "0");
@@ -59,7 +52,6 @@ export function NotesPanel({
 
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
-  const [occurredAt, setOccurredAt] = useState(() => toDatetimeLocalValue(new Date()));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,12 +68,11 @@ export function NotesPanel({
     try {
       await addNote(patientId, {
         notes,
-        occurredAt: new Date(occurredAt).toISOString(),
+        occurredAt: new Date().toISOString(),
         templateUsed: selectedTemplates.length ? selectedTemplates.join(", ") : null,
       });
       setNotes("");
       setSelectedTemplates([]);
-      setOccurredAt(toDatetimeLocalValue(new Date()));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save note");
       throw err;
@@ -259,14 +250,6 @@ export function NotesPanel({
           placeholder="Write a note…"
           className="block w-full resize-y rounded-md border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-border/40 dark:border-neutral-700 dark:bg-neutral-950"
         />
-        <div className="mt-2 flex items-center gap-2">
-          <input
-            type="datetime-local"
-            value={occurredAt}
-            onChange={(e) => setOccurredAt(e.target.value)}
-            className="rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
-          />
-        </div>
         {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
         <button
           type="button"

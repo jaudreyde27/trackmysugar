@@ -84,11 +84,16 @@ const EMPTY_STATS_TEMPLATE = {
   percentVeryHigh: 0,
 } as const;
 
+// `anchor` defaults to wall-clock now, but callers computing the
+// freshest-data window (e.g. "24H") should pass the last successful Dexcom
+// sync time instead — sync only runs periodically, so anchoring a short
+// window on "now" can land after the newest synced data and read as empty.
 export async function getGlucoseStatsForPatient(
   patientId: string,
-  days: number
+  days: number,
+  anchor: Date = new Date()
 ): Promise<GlucoseStats> {
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const since = new Date(anchor.getTime() - days * 24 * 60 * 60 * 1000);
 
   const rows = await prisma.$queryRaw<RawStatsRow[]>(Prisma.sql`
     SELECT

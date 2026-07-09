@@ -12,18 +12,33 @@ const RANGE_HIGH = 180;
 const Y_MIN = 40;
 const Y_MAX = 300;
 
-export function GlucoseTrendChart({ readings, dayRange }: { readings: Reading[]; dayRange: number }) {
+export function GlucoseTrendChart({
+  readings,
+  dayRange,
+  lastSyncSuccessAt,
+}: {
+  readings: Reading[];
+  dayRange: number;
+  lastSyncSuccessAt: string | null;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   const visibleReadings = useMemo(() => {
     if (readings.length === 0) return [];
-    // Anchor on the latest reading rather than wall-clock time so this stays
-    // a pure function of props (sync runs daily, so "latest reading" ≈ "now").
-    const latest = Math.max(...readings.map((r) => new Date(r.systemTime).getTime()));
+    // 24H anchors on the last successful Dexcom pull rather than the
+    // freshest reading in view — sync runs periodically, not continuously,
+    // so "latest reading" can trail well behind when data actually landed,
+    // leaving a narrow trailing window empty even though data exists.
+    // 3D/7D stay anchored on the latest reading — wide enough windows that
+    // this doesn't matter, and it keeps them a pure function of props.
+    const latest =
+      dayRange === 1 && lastSyncSuccessAt
+        ? new Date(lastSyncSuccessAt).getTime()
+        : Math.max(...readings.map((r) => new Date(r.systemTime).getTime()));
     const cutoff = latest - dayRange * 24 * 60 * 60 * 1000;
     return readings.filter((r) => new Date(r.systemTime).getTime() >= cutoff);
-  }, [readings, dayRange]);
+  }, [readings, dayRange, lastSyncSuccessAt]);
 
   const points = useMemo(() => {
     if (visibleReadings.length === 0) return [];

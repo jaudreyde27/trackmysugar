@@ -59,9 +59,11 @@ function StatTile({ label, value, highlighted }: { label: string; value: string;
 export function ChartsPanel({
   readings,
   statsByWindow,
+  lastSyncSuccessAt,
 }: {
   readings: Reading[];
   statsByWindow: Record<DayRange, GlucoseStats>;
+  lastSyncSuccessAt: string | null;
 }) {
   const [dayRange, setDayRange] = useState<DayRange>(DEFAULT_DAY_RANGE);
   const [viewMode, setViewMode] = useState<"chart" | "list">("chart");
@@ -76,13 +78,20 @@ export function ChartsPanel({
 
   const visibleReadings = useMemo(() => {
     if (readings.length === 0) return [];
-    const latest = Math.max(...readings.map((r) => new Date(r.systemTime).getTime()));
+    // 24H anchors on the last successful Dexcom pull, not the freshest
+    // reading in view — sync runs periodically, so a window built off
+    // "whatever reading happens to be newest" can be misleadingly narrow
+    // (see GlucoseTrendChart for the same anchor logic on the chart itself).
+    const latest =
+      dayRange === 1 && lastSyncSuccessAt
+        ? new Date(lastSyncSuccessAt).getTime()
+        : Math.max(...readings.map((r) => new Date(r.systemTime).getTime()));
     const cutoff = latest - dayRange * 24 * 60 * 60 * 1000;
     return readings
       .filter((r) => new Date(r.systemTime).getTime() >= cutoff)
       .slice()
       .reverse();
-  }, [readings, dayRange]);
+  }, [readings, dayRange, lastSyncSuccessAt]);
 
   return (
     <div>
@@ -148,7 +157,9 @@ export function ChartsPanel({
       </div>
 
       <div className="mt-3">
-        {viewMode === "chart" && <GlucoseTrendChart readings={readings} dayRange={dayRange} />}
+        {viewMode === "chart" && (
+          <GlucoseTrendChart readings={readings} dayRange={dayRange} lastSyncSuccessAt={lastSyncSuccessAt} />
+        )}
         {viewMode === "list" && (
           <div className="max-h-[220px] overflow-y-auto rounded-lg border border-neutral-200 dark:border-neutral-800">
             {visibleReadings.length === 0 ? (

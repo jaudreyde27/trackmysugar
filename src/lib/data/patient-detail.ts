@@ -96,6 +96,10 @@ export async function getPatientDetail(
   if (!patient) return null;
 
   const since = new Date(Date.now() - CHART_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  // The 24H window is anchored on the last successful Dexcom pull rather
+  // than wall-clock now — sync runs periodically, not continuously, so
+  // "now" can land after the newest synced data and read as empty.
+  const lastSyncAnchor = patient.dexcomConnection?.lastSyncSuccessAt ?? new Date();
 
   const [
     stats1,
@@ -111,7 +115,7 @@ export async function getPatientDetail(
     mostRecentReading,
     monitoringTotalsThisMonth,
   ] = await Promise.all([
-    getGlucoseStatsForPatient(patientId, 1),
+    getGlucoseStatsForPatient(patientId, 1, lastSyncAnchor),
     getGlucoseStatsForPatient(patientId, 3),
     getGlucoseStatsForPatient(patientId, 7),
     prisma.glucoseReading.findMany({
