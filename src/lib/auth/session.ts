@@ -77,6 +77,7 @@ export type CurrentSession = {
     organizationId: string | null;
     organizationName: string | null;
     isPlatformAdmin: boolean;
+    credential: string | null;
   };
   // CDCES-portal only — every practice this user can switch into. Empty
   // for PRACTICE/platform-admin accounts (nothing to switch between).
@@ -169,6 +170,7 @@ export async function getCurrentSession(): Promise<CurrentSession | null> {
       organizationId,
       organizationName,
       isPlatformAdmin: session.staffUser.isPlatformAdmin,
+      credential: session.staffUser.credential,
     },
     accessibleOrganizations,
   };

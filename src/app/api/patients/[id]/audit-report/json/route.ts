@@ -1,11 +1,11 @@
 import { randomUUID, createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { renderToBuffer } from "@react-pdf/renderer";
 import { getOptionalSession } from "@/lib/auth/dal";
 import { getAuditReportData } from "@/lib/data/audit-report";
-import { AuditReportDocument } from "@/lib/pdf/audit-report-document";
 import { logAudit } from "@/lib/audit";
 
+// Same underlying data as the PDF export, as JSON — for re-generation
+// (e.g. rendering the PDF template elsewhere) or feeding other tooling.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getOptionalSession();
   if (!session || !session.staffUser.organizationId) {
@@ -25,21 +25,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const reportId = randomUUID();
   const generatedAt = new Date();
   const contentHash = createHash("sha256").update(JSON.stringify(data)).digest("hex");
-  const metadata = { reportId, generatedAt, generatedByName: session.staffUser.name, contentHash };
-
-  const buffer = await renderToBuffer(AuditReportDocument({ data, metadata }));
 
   await logAudit({
     staffUserId: session.staffUser.id,
     patientId: id,
-    action: "AUDIT_REPORT_DOWNLOADED",
+    action: "AUDIT_REPORT_JSON_EXPORTED",
     metadata: { year, month, reportId, contentHash },
   });
 
-  return new NextResponse(new Uint8Array(buffer), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="rpm-audit-report-${data.patient.mrn}-${year}-${String(month).padStart(2, "0")}.pdf"`,
-    },
+  return NextResponse.json({
+    metadata: { reportId, generatedAt, generatedByName: session.staffUser.name, contentHash },
+    data,
   });
 }

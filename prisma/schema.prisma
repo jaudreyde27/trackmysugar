@@ -116,6 +116,23 @@ enum MonitoringSessionSource {
   MANUAL
 }
 
+// SYNCHRONOUS: live, real-time contact with the patient (a call).
+// ASYNCHRONOUS: chart review / logged time with no live patient contact.
+// Snapshotted onto MonitoringSession at creation time — audit reports need
+// what was true when the entry was logged, not a live join to staff/source.
+enum CommunicationMethod {
+  SYNCHRONOUS
+  ASYNCHRONOUS
+}
+
+// AUTOMATIC: synced from a connected device (CGM). MANUAL: hand-entered
+// (e.g. a glucometer fingerstick) — no writer produces this yet, but audit
+// reports need to be able to tell the two apart once one exists.
+enum ReadingSource {
+  AUTOMATIC
+  MANUAL
+}
+
 model StaffUser {
   id           String    @id @default(cuid())
   email        String    @unique
@@ -126,6 +143,11 @@ model StaffUser {
   active       Boolean    @default(true)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+
+  // Clinical credential suffix (e.g. "RN", "CDCES", "MD") — null for
+  // non-clinical staff. Snapshotted onto MonitoringSession rows at write
+  // time so audit reports reflect the credential held when logged.
+  credential String?
 
   // Fixed home org for PRACTICE-portal staff — null for platform-admin
   // accounts (which sit above any single clinic) *and* for CDCES-portal
@@ -408,6 +430,11 @@ model GlucoseReading {
   trend       EgvTrend @default(NONE)
   trendRate   Float?
 
+  // AUTOMATIC (device sync) vs MANUAL (e.g. glucometer fingerstick) — the
+  // sync job never sets this explicitly, so every synced reading takes the
+  // AUTOMATIC default; no writer produces MANUAL readings yet.
+  readingSource ReadingSource @default(AUTOMATIC)
+
   createdAt DateTime @default(now())
 
   @@unique([patientId, systemTime])
@@ -476,6 +503,13 @@ model MonitoringSession {
   notes               String  @default("")
   templateUsed        String?
   twoWayCommunication Boolean @default(false)
+
+  // Snapshotted at creation from the acting staff member — SYNCHRONOUS for
+  // live calls, ASYNCHRONOUS for chart review/logged time with no live
+  // patient contact. staffCredential mirrors StaffUser.credential at write
+  // time. Both reflect what was true when logged, not a live join.
+  communicationMethod CommunicationMethod @default(ASYNCHRONOUS)
+  staffCredential     String?
 
   // Snapshot of the AI-generated (or rule-based fallback) talking points
   // shown at call start (CALL source only); not regenerated mid-call.

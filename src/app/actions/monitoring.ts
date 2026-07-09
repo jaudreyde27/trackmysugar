@@ -45,6 +45,8 @@ export async function addManualMonitoringSession(patientId: string, input: AddMa
       occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date() : occurredAt,
       durationSeconds,
       notes: input.notes.trim(),
+      communicationMethod: "ASYNCHRONOUS",
+      staffCredential: session.staffUser.credential,
     },
   });
 
@@ -102,6 +104,8 @@ export async function logRpmCallTime(patientId: string, input: LogCallTimeInput)
       source: "MANUAL",
       occurredAt: startedAt,
       durationSeconds,
+      communicationMethod: "SYNCHRONOUS",
+      staffCredential: session.staffUser.credential,
     },
   });
 

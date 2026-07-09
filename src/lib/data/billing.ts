@@ -19,7 +19,7 @@ const CPT_99454_MIN_DAYS = 16;
 const CPT_99470_MIN_MINUTES = 10;
 const CPT_99470_MAX_MINUTES = 19;
 const CPT_99457_MIN_MINUTES = 20;
-const CPT_99458_MIN_MINUTES = 40;
+const CPT_99458_INCREMENT_MINUTES = 20;
 
 // Dollar total for a patient's eligible codes this month, using the
 // practice's own configured rates (Settings → Reimbursement Rates) rather
@@ -43,6 +43,7 @@ export type CptEligibility = {
   code99470: boolean; // 10–19 monitoring minutes
   code99457: boolean; // 20+ monitoring minutes (first 20 min)
   code99458: boolean; // additional 20-minute block beyond 99457
+  additional99458Units: number; // count of complete 20-minute blocks beyond the first 20
   daysOfReadings: number;
   monitoringMinutes: number;
 };
@@ -66,6 +67,10 @@ export async function getCptEligibilityForMonth(
   ]);
 
   const monitoringMinutes = totals.totalSeconds / 60;
+  const code99457 = monitoringMinutes >= CPT_99457_MIN_MINUTES;
+  const additional99458Units = code99457
+    ? Math.floor((monitoringMinutes - CPT_99457_MIN_MINUTES) / CPT_99458_INCREMENT_MINUTES)
+    : 0;
 
   return {
     code99453: patient.cpt99453CompletedAt != null,
@@ -73,8 +78,9 @@ export async function getCptEligibilityForMonth(
     code99445: daysOfReadings >= CPT_99445_MIN_DAYS && daysOfReadings <= CPT_99445_MAX_DAYS,
     code99454: daysOfReadings >= CPT_99454_MIN_DAYS,
     code99470: monitoringMinutes >= CPT_99470_MIN_MINUTES && monitoringMinutes <= CPT_99470_MAX_MINUTES,
-    code99457: monitoringMinutes >= CPT_99457_MIN_MINUTES,
-    code99458: monitoringMinutes >= CPT_99458_MIN_MINUTES,
+    code99457,
+    code99458: additional99458Units >= 1,
+    additional99458Units,
     daysOfReadings,
     monitoringMinutes,
   };

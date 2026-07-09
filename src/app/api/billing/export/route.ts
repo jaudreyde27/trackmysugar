@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     if (eligibility.code99470) candidates.push({ cptCode: "99470", units: 1 });
     if (eligibility.code99457) candidates.push({ cptCode: "99457", units: 1 });
     if (eligibility.code99458) {
-      candidates.push({ cptCode: "99458", units: Math.floor((eligibility.monitoringMinutes - 20) / 20) });
+      candidates.push({ cptCode: "99458", units: eligibility.additional99458Units });
     }
 
     if (candidates.length === 0) {

@@ -44,6 +44,8 @@ export async function addNote(patientId: string, input: AddNoteInput) {
       occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date() : occurredAt,
       notes,
       templateUsed: input.templateUsed,
+      communicationMethod: "ASYNCHRONOUS",
+      staffCredential: session.staffUser.credential,
     },
   });
 

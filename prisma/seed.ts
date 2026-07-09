@@ -404,13 +404,14 @@ async function main() {
 
   const cdces = await prisma.staffUser.upsert({
     where: { email: cdcesEmail },
-    update: { portalType: "CDCES" },
+    update: { portalType: "CDCES", credential: "CDCES" },
     create: {
       email: cdcesEmail,
       passwordHash: cdcesPasswordHash,
       name: "CDCES Clinician",
       role: "CLINICIAN",
       portalType: "CDCES",
+      credential: "CDCES",
     },
   });
   await prisma.staffOrganizationAccess.upsert({
