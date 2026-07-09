@@ -147,7 +147,7 @@ export function BillingTable({
                   <td className="px-3 py-2 text-right">
                     <a
                       href={`/api/patients/${row.patientId}/audit-report?year=${year}&month=${month}`}
-                      className="inline-block rounded-md border border-neutral-300 px-2.5 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                      className="inline-block rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900"
                     >
                       Audit Report
                     </a>

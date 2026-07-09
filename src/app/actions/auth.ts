@@ -8,7 +8,12 @@ import { createSession, destroyCurrentSession } from "@/lib/auth/session";
 import { isRateLimited } from "@/lib/auth/rate-limit";
 import { logAudit } from "@/lib/audit";
 
-export type LoginState = { error: string } | undefined;
+// React resets every uncontrolled input in a <form action={...}> once the
+// action returns, including ones the browser shouldn't touch (email) — not
+// just the one that should reset (password). Echoing the submitted email
+// back lets the form re-populate it instead of leaving a blank required
+// field that silently blocks the browser's HTML5 validation on retry.
+export type LoginState = { error: string; email: string } | undefined;
 
 // A hash of a value nobody will ever type, so failed lookups still pay the
 // cost of a bcrypt compare and timing doesn't reveal whether the email exists.
@@ -21,14 +26,14 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
-    return { error: "Email and password are required." };
+    return { error: "Email and password are required.", email };
   }
 
   const h = await headers();
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
   if (isRateLimited(`${ip}:${email}`)) {
-    return { error: "Too many attempts. Please wait a few minutes and try again." };
+    return { error: "Too many attempts. Please wait a few minutes and try again.", email };
   }
 
   const user = await prisma.staffUser.findUnique({ where: { email } });
@@ -40,7 +45,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
       action: "LOGIN_FAILURE",
       metadata: { email },
     });
-    return { error: "Invalid email or password." };
+    return { error: "Invalid email or password.", email };
   }
 
   await createSession(user.id);

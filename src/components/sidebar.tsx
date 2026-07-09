@@ -19,7 +19,7 @@ function NavLink({ href, label, active }: { href: string; label: string; active:
       className={`block rounded-md border-l-2 px-3 py-2 text-base font-medium transition-colors ${
         active
           ? "border-[#8fbf8a] bg-[#17201a] text-[#8fbf8a]"
-          : "border-transparent text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100"
+          : "border-transparent text-neutral-300 hover:bg-white/10 hover:text-white"
       }`}
     >
       {label}
@@ -37,8 +37,8 @@ export function Sidebar({ session }: { session: CurrentSession }) {
   const hasOrganization = !!staffUser.organizationId;
 
   return (
-    <aside className="flex w-48 shrink-0 flex-col bg-neutral-950 text-neutral-100">
-      <div className="border-b border-neutral-800 px-4 py-5">
+    <aside className="flex w-48 shrink-0 flex-col bg-gradient-to-b from-[#1c3320] via-[#122417] to-[#0a140d] text-neutral-100">
+      <div className="border-b border-white/10 px-4 py-5">
         <GuardedLink href="/" className="flex items-center gap-2 text-base font-semibold text-white">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#8fbf8a]" aria-hidden />
           TrackMySugar
@@ -46,7 +46,7 @@ export function Sidebar({ session }: { session: CurrentSession }) {
       </div>
 
       {(staffUser.organizationName || accessibleOrganizations.length > 0) && (
-        <div className="border-b border-neutral-800 px-4 py-3">
+        <div className="border-b border-white/10 px-4 py-3">
           {staffUser.portalType === "CDCES" && accessibleOrganizations.length > 0 ? (
             <PracticeSwitcher organizations={accessibleOrganizations} currentOrganizationId={staffUser.organizationId} />
           ) : (
@@ -69,7 +69,7 @@ export function Sidebar({ session }: { session: CurrentSession }) {
         )}
       </nav>
 
-      <div className="border-t border-neutral-800 px-4 py-4">
+      <div className="border-t border-white/10 px-4 py-4">
         <div className="mb-2 truncate text-base text-neutral-400">{staffUser.name}</div>
         <form action={logout}>
           <button type="submit" className="text-base text-neutral-400 hover:text-neutral-100">
