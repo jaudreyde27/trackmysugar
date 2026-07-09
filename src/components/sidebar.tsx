@@ -6,12 +6,20 @@ import { GuardedLink } from "@/components/guarded-link";
 import { PracticeSwitcher } from "@/components/practice-switcher";
 import type { CurrentSession } from "@/lib/auth/session";
 
+// Fixed (theme-independent) green accents for the sidebar — it's always
+// dark regardless of the user's OS light/dark preference, so it uses the
+// same sage-green hues the rest of the app reserves for dark surfaces
+// (see the @media (prefers-color-scheme: dark) block in globals.css)
+// rather than the var(--accent) tokens, which flip to a light-surface
+// shade in light mode and would lose contrast against this background.
 function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
   return (
     <GuardedLink
       href={href}
-      className={`block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-        active ? "bg-neutral-800 text-white" : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100"
+      className={`block rounded-md border-l-2 px-3 py-2 text-base font-medium transition-colors ${
+        active
+          ? "border-[#8fbf8a] bg-[#17201a] text-[#8fbf8a]"
+          : "border-transparent text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100"
       }`}
     >
       {label}
@@ -31,8 +39,8 @@ export function Sidebar({ session }: { session: CurrentSession }) {
   return (
     <aside className="flex w-48 shrink-0 flex-col bg-neutral-950 text-neutral-100">
       <div className="border-b border-neutral-800 px-4 py-5">
-        <GuardedLink href="/" className="flex items-center gap-2 text-sm font-semibold text-white">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent" aria-hidden />
+        <GuardedLink href="/" className="flex items-center gap-2 text-base font-semibold text-white">
+          <span className="inline-block h-2.5 w-2.5 rounded-full bg-[#8fbf8a]" aria-hidden />
           TrackMySugar
         </GuardedLink>
       </div>
@@ -43,7 +51,7 @@ export function Sidebar({ session }: { session: CurrentSession }) {
             <PracticeSwitcher organizations={accessibleOrganizations} currentOrganizationId={staffUser.organizationId} />
           ) : (
             staffUser.organizationName && (
-              <div className="truncate rounded-md bg-neutral-900 px-3 py-2 text-sm font-medium text-neutral-200">
+              <div className="truncate rounded-md bg-[#17201a] px-3 py-2 text-base font-medium text-[#8fbf8a]">
                 {staffUser.organizationName}
               </div>
             )
@@ -52,7 +60,7 @@ export function Sidebar({ session }: { session: CurrentSession }) {
       )}
 
       <nav className="flex-1 space-y-1 px-3 py-4">
-        <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-600">Main</p>
+        <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-neutral-600">Main</p>
         <NavLink href="/" label="Patients" active={pathname === "/" || pathname.startsWith("/patients")} />
         <NavLink href="/reports" label="Reports" active={pathname.startsWith("/reports")} />
         {hasOrganization && <NavLink href="/billing" label="Billing" active={pathname.startsWith("/billing")} />}
@@ -62,9 +70,9 @@ export function Sidebar({ session }: { session: CurrentSession }) {
       </nav>
 
       <div className="border-t border-neutral-800 px-4 py-4">
-        <div className="mb-2 truncate text-sm text-neutral-400">{staffUser.name}</div>
+        <div className="mb-2 truncate text-base text-neutral-400">{staffUser.name}</div>
         <form action={logout}>
-          <button type="submit" className="text-sm text-neutral-400 hover:text-neutral-100">
+          <button type="submit" className="text-base text-neutral-400 hover:text-neutral-100">
             Sign out
           </button>
         </form>
