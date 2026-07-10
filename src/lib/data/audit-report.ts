@@ -5,13 +5,36 @@ import { getDiagnosisName } from "@/lib/diagnosis-codes";
 import { RPM_CPT_CODES, RPM_CPT_LABELS, type RpmCptCode } from "@/lib/data/reimbursement-rates";
 import type { CommunicationMethod, ReadingSource } from "@prisma/client";
 
+// Short labels — used in the day-by-day Readings table, where a compact
+// device name reads better than the full "Category (Brand, Model)" form.
 const CGM_LABELS: Record<string, string> = { DEXCOM: "Dexcom", FREESTYLE_LIBRE: "FreeStyle Libre" };
-const PUMP_LABELS: Record<string, string> = {
-  OMNIPOD: "Omnipod",
-  TANDEM: "Tandem",
-  MEDTRONIC: "Medtronic",
-  MDI: "MDI",
+
+// Brand/model — used for Program Details' "Device Type(s)" field, e.g.
+// "Insulin Pump (Insulet, Omnipod 5)". MDI (multiple daily injections) has
+// no brand/model since it isn't a device.
+const CGM_DEVICE_INFO: Record<string, { brand: string; model: string }> = {
+  DEXCOM: { brand: "Dexcom", model: "G6" },
+  FREESTYLE_LIBRE: { brand: "Abbott", model: "FreeStyle Libre 3" },
 };
+const PUMP_DEVICE_INFO: Record<string, { brand: string; model: string }> = {
+  OMNIPOD: { brand: "Insulet", model: "Omnipod 5" },
+  TANDEM: { brand: "Tandem Diabetes Care", model: "t:slim X2" },
+  MEDTRONIC: { brand: "Medtronic", model: "MiniMed 780G" },
+};
+
+function deviceTypeLabel(
+  category: "CGM" | "PUMP",
+  cgmDevice: string | null,
+  insulinDeliveryDevice: string | null
+): string {
+  if (category === "CGM") {
+    const info = cgmDevice ? CGM_DEVICE_INFO[cgmDevice] : null;
+    return info ? `CGM (${info.brand}, ${info.model})` : "CGM";
+  }
+  if (insulinDeliveryDevice === "MDI") return "Insulin Delivery (Multiple Daily Injections)";
+  const info = insulinDeliveryDevice ? PUMP_DEVICE_INFO[insulinDeliveryDevice] : null;
+  return info ? `Insulin Pump (${info.brand}, ${info.model})` : "Insulin Pump";
+}
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -94,11 +117,8 @@ export type AuditReportData = {
     daysOfReadings: number;
   };
   otherDetails: {
-    referringProvider: string | null;
     supervisingProvider: string | null;
     organizationName: string;
-    careManager: string | null;
-    clinicalNotes: string | null;
     cptCodesBilled: string[];
   };
   rpmConsentParagraph: string;
@@ -175,10 +195,7 @@ export async function getAuditReportData(
   const devices = deviceHistory
     .filter((d) => d.category === "CGM" || d.category === "PUMP")
     .map((d) => ({
-      label:
-        d.category === "CGM"
-          ? (d.cgmDevice && CGM_LABELS[d.cgmDevice]) || "Unknown CGM"
-          : (d.insulinDeliveryDevice && PUMP_LABELS[d.insulinDeliveryDevice]) || "Unknown pump",
+      label: deviceTypeLabel(d.category, d.cgmDevice, d.insulinDeliveryDevice),
       serialNumber: d.serialNumber,
     }));
 
@@ -329,11 +346,8 @@ export async function getAuditReportData(
       daysOfReadings: eligibility.daysOfReadings,
     },
     otherDetails: {
-      referringProvider: patient.primaryProviderName,
       supervisingProvider: patient.supervisingProviderName,
       organizationName: patient.organization.name,
-      careManager: patient.careManagerName,
-      clinicalNotes: patient.clinicalNotes,
       cptCodesBilled: billedCodes,
     },
     rpmConsentParagraph,

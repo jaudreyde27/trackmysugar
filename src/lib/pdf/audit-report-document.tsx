@@ -92,6 +92,12 @@ function SectionTitle({ children }: { children: string }) {
   return <Text style={styles.sectionTitle}>{children}</Text>;
 }
 
+const RPM_SESSIONS_SUBHEADER =
+  "Remote patient monitoring sessions are conducted by clinical staff who review patient sensor data — " +
+  "transmitted daily and aggregated into trends and insights — and contact patients directly for live, " +
+  "two-way conversation by phone when clinically indicated. Each entry below reflects a single monitoring " +
+  "or call activity, with its duration and the date/time it occurred.";
+
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.field}>
@@ -227,20 +233,15 @@ export function AuditReportDocument({
           <TwoColumn
             left={
               <>
-                <Field label="Referring Provider" value={otherDetails.referringProvider ?? "—"} />
+                <Field label="Supervising Provider" value={otherDetails.supervisingProvider ?? "—"} />
                 <Field label="Organization" value={otherDetails.organizationName} />
-                <Field label="Clinical Notes" value={otherDetails.clinicalNotes ?? "—"} />
               </>
             }
             right={
-              <>
-                <Field label="Supervising Provider" value={otherDetails.supervisingProvider ?? "—"} />
-                <Field label="Care Manager" value={otherDetails.careManager ?? "—"} />
-                <Field
-                  label="CPT Code(s) Billed"
-                  value={otherDetails.cptCodesBilled.length > 0 ? otherDetails.cptCodesBilled.join(", ") : "None this period"}
-                />
-              </>
+              <Field
+                label="CPT Code(s) Billed"
+                value={otherDetails.cptCodesBilled.length > 0 ? otherDetails.cptCodesBilled.join(", ") : "None this period"}
+              />
             }
           />
         </View>
@@ -261,7 +262,8 @@ export function AuditReportDocument({
         </View>
 
         <View style={styles.section}>
-          <SectionTitle>Monitoring Sessions</SectionTitle>
+          <SectionTitle>RPM Sessions</SectionTitle>
+          <Text style={{ ...styles.paragraphText, marginBottom: 6, color: "#555" }}>{RPM_SESSIONS_SUBHEADER}</Text>
           <Table
             columns={[{ label: "Date", width: 90 }, { label: "Duration", width: 70 }, { label: "Staff" }]}
             rows={monitoringSessions.map((s) => [formatDateTime(s.occurredAt), formatDuration(s.durationSeconds), s.staffName])}
@@ -281,9 +283,6 @@ export function AuditReportDocument({
             emptyMessage="No readings recorded this period."
           />
         </View>
-      </Page>
-
-      <Page size="LETTER" style={styles.page}>
         <View style={styles.section}>
           <SectionTitle>Billing Summary</SectionTitle>
           {billingSummary.length === 0 ? (
