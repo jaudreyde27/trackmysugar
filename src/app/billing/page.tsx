@@ -28,9 +28,9 @@ export default async function BillingPage({
 
   const totalBillable = rows.reduce((sum, r) => sum + estimatedDollarsFor(r.eligibility, rates), 0);
 
-  const yearOptions = Array.from(
-    new Set([now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1, year])
-  ).sort((a, b) => a - b);
+  const yearOptions = Array.from(new Set([now.getFullYear() - 1, now.getFullYear(), year])).sort(
+    (a, b) => a - b
+  );
 
   return (
     <AppShell session={session}>

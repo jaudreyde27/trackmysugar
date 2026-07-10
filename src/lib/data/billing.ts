@@ -158,6 +158,9 @@ export type BillingRow = {
   insuranceName: string | null;
   insuranceMemberId: string | null;
   eligibility: CptEligibility;
+  // Monotonic — once 99453 has been included in any generated billing
+  // batch, it never bills again for this patient (one-time setup code).
+  rpmSetupBilled: boolean;
   markedBilledAt: Date | null;
   status: BillingStatus;
 };
@@ -180,6 +183,7 @@ export async function getBillingRosterForMonth(
       dateOfBirth: true,
       supervisingProviderName: true,
       cpt99453CompletedAt: true,
+      rpmSetupBilled: true,
       insurancePolicies: { where: { rank: "PRIMARY" }, select: { payerName: true, memberId: true } },
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
@@ -206,6 +210,7 @@ export async function getBillingRosterForMonth(
         insuranceName: primaryInsurance?.payerName ?? null,
         insuranceMemberId: primaryInsurance?.memberId ?? null,
         eligibility,
+        rpmSetupBilled: patient.rpmSetupBilled,
         markedBilledAt,
         status: billingStatusFor(markedBilledAt),
       };

@@ -12,10 +12,12 @@ type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 type DeviceConfig = { label: string; Icon: IconComponent; color: string; iconColor?: string };
 
+// Brand + model, not just brand — e.g. "Dexcom G7 15-Day" rather than just
+// "Dexcom" — so the badge alone identifies the specific device in use.
 const CGM_CONFIG: Record<CgmDevice, DeviceConfig> = {
-  DEXCOM: { label: "Dexcom", Icon: DexcomIcon, color: "var(--cat-dexcom-green)" },
+  DEXCOM: { label: "Dexcom G7 15-Day", Icon: DexcomIcon, color: "var(--cat-dexcom-green)" },
   FREESTYLE_LIBRE: {
-    label: "Libre",
+    label: "FreeStyle Libre 3",
     Icon: LibreIcon,
     color: "var(--cat-libre-yellow)",
     iconColor: "#171717",
@@ -25,9 +27,9 @@ const CGM_CONFIG: Record<CgmDevice, DeviceConfig> = {
 // Real pump devices only — MDI (multiple daily injections) means the patient
 // has no pump, so it's handled as an absence case rather than a badge.
 const PUMP_CONFIG: Record<Exclude<InsulinDeliveryDevice, "MDI">, DeviceConfig> = {
-  OMNIPOD: { label: "Omnipod", Icon: OmnipodIcon, color: "var(--cat-violet)" },
-  TANDEM: { label: "Tandem", Icon: TandemIcon, color: "var(--cat-blue)" },
-  MEDTRONIC: { label: "Medtronic", Icon: MedtronicIcon, color: "var(--cat-medtronic-navy)" },
+  OMNIPOD: { label: "Omnipod 5", Icon: OmnipodIcon, color: "var(--cat-violet)" },
+  TANDEM: { label: "Tandem t:slim X2", Icon: TandemIcon, color: "var(--cat-blue)" },
+  MEDTRONIC: { label: "Medtronic MiniMed 780G", Icon: MedtronicIcon, color: "var(--cat-medtronic-navy)" },
 };
 
 function hasPump(device: InsulinDeliveryDevice | null): device is Exclude<InsulinDeliveryDevice, "MDI"> {

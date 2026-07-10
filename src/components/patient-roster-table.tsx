@@ -155,7 +155,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
               <SortHeader label="R30" column="r30" sort={sort} onSort={toggleSort} />
             </th>
             <th className={`px-2 py-3 ${HEADER_CLASS}`}>Time in range</th>
-            <th className="px-2 py-3 text-center">
+            <th className="w-20 px-2 py-3 text-center">
               <SortHeader label="Glycemia risk zone" column="riskZone" sort={sort} onSort={toggleSort} />
             </th>
             <th className={`px-2 py-3 ${HEADER_CLASS}`}>Avg glucose (14d)</th>
@@ -211,7 +211,7 @@ export function PatientRosterTable({ roster }: { roster: RosterRow[] }) {
               <td className="px-2 py-3">
                 <TimeInRangeBar stats={patient.stats} size="sm" />
               </td>
-              <td className="px-2 py-3 text-center">
+              <td className="w-20 px-2 py-3 text-center">
                 <GriZoneBadge score={patient.griScore} />
               </td>
               <td className="px-2 py-3 tabular-nums text-neutral-700 dark:text-neutral-300">

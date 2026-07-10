@@ -36,10 +36,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     metadata: { year, month, reportId, contentHash },
   });
 
+  const fileSafeName = `${data.patient.firstName}-${data.patient.lastName}`.replace(/[^a-zA-Z0-9-]+/g, "");
+  const dob = new Date(data.patient.dateOfBirth).toISOString().slice(0, 10);
+  const filename = `rpm-audit-report-${fileSafeName}-${dob}-${year}-${String(month).padStart(2, "0")}.pdf`;
+
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="rpm-audit-report-${data.patient.mrn}-${year}-${String(month).padStart(2, "0")}.pdf"`,
+      "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
 }

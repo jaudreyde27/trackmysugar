@@ -53,6 +53,23 @@ function CodeCell({ met, groupStart, onClick }: { met: boolean; groupStart: bool
   );
 }
 
+// 99453 is billed exactly once per patient, ever — once rpmSetupBilled is
+// set, a plain ✓ (implying "eligible again this period") or ✕ (implying
+// "not yet done") would both be misleading. This is a distinct, non-clickable
+// acknowledgment: already billed, permanently done.
+function AlreadyBilledCell({ groupStart }: { groupStart: boolean }) {
+  return (
+    <td className={`px-2 py-3 text-center ${groupStart ? "border-l border-neutral-200 dark:border-neutral-800" : ""}`}>
+      <span
+        className="inline-flex text-base text-blue-500 dark:text-blue-400"
+        title="Already billed — one-time code, won't bill again"
+      >
+        ✔︎
+      </span>
+    </td>
+  );
+}
+
 function formatDuration(minutes: number): string {
   const total = Math.round(minutes * 60);
   const m = Math.floor(total / 60);
@@ -147,7 +164,11 @@ export function BillingTable({
                   <td className="px-1.5 py-3 text-center tabular-nums text-neutral-600 dark:text-neutral-400">
                     {formatDuration(row.eligibility.monitoringMinutes)}
                   </td>
-                  <CodeCell met={row.eligibility.code99453} groupStart onClick={() => void toggle99453(row)} />
+                  {row.rpmSetupBilled ? (
+                    <AlreadyBilledCell groupStart />
+                  ) : (
+                    <CodeCell met={row.eligibility.code99453} groupStart onClick={() => void toggle99453(row)} />
+                  )}
                   <CodeCell met={row.eligibility.code99445} groupStart />
                   <CodeCell met={row.eligibility.code99454} groupStart={false} />
                   <CodeCell met={row.eligibility.code99470} groupStart />
