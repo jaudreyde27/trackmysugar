@@ -20,8 +20,12 @@ import { TrendsPanel } from "@/components/trends-panel";
 import { UnsavedGuardProvider } from "@/components/unsaved-guard";
 import { ChartReviewTimerProvider, ChartReviewFloatingPrompt, MassiveChartTimer } from "@/components/chart-review-timer";
 import { generateNotesSummary } from "@/lib/ai/notes-summary";
+import { isTouchpointSession } from "@/lib/data/monitoring";
+import { stripTemplateBoilerplate } from "@/lib/constants";
 import { EnrollmentLinkButton } from "@/components/enrollment-link-button";
 import { GuardedLink } from "@/components/guarded-link";
+
+const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
 function diabetesTypeLabel(type: "TYPE_1" | "TYPE_2") {
   return type === "TYPE_1" ? "Type 1 diabetes" : "Type 2 diabetes";
@@ -49,10 +53,19 @@ export default async function PatientDetailPage({
 
   const canManage = session.staffUser.portalType === "CDCES";
 
+  // "RPM session" == the same touchpoint definition used for last-CDCES-touchpoint
+  // elsewhere (a call, or a note tagged "RPM Completed") — quick notes like
+  // "Left Voicemail"/"Chart Comment" alone don't count as a completed session.
+  // Rolling 12 months, and boilerplate template text stripped before it's fed
+  // to the summary so it reflects only what the CDCES actually wrote.
+  const cutoff = new Date().getTime() - ONE_YEAR_MS;
+  const rpmSessionsLastYear = patient.recentMonitoringSessions.filter(
+    (s) => isTouchpointSession(s) && s.occurredAt.getTime() >= cutoff
+  );
+
   const notesSummary = await generateNotesSummary(
-    patient.recentMonitoringSessions
-      .filter((s) => s.notes.trim().length > 0)
-      .map((s) => ({ startedAt: s.occurredAt, notes: s.notes }))
+    `${patient.firstName} ${patient.lastName}`,
+    rpmSessionsLastYear.map((s) => ({ startedAt: s.occurredAt, notes: stripTemplateBoilerplate(s.notes) }))
   );
 
   // Only sessions with actual note text become a card in the Notes feed —

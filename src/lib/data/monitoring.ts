@@ -15,6 +15,13 @@ const TOUCHPOINT_WHERE = {
   OR: [{ source: "CALL" as const }, { templateUsed: { contains: "RPM Completed" } }],
 };
 
+// Same definition as TOUCHPOINT_WHERE, usable against a session list already
+// fetched into memory (e.g. building the AI notes summary) instead of
+// issuing a fresh Prisma query.
+export function isTouchpointSession(s: { source: string; templateUsed: string | null }): boolean {
+  return s.source === "CALL" || (s.templateUsed?.includes("RPM Completed") ?? false);
+}
+
 export async function getLastTouchpointForAllPatients(): Promise<Map<string, Date>> {
   const rows = await prisma.monitoringSession.groupBy({
     by: ["patientId"],

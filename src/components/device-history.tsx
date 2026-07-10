@@ -2,14 +2,14 @@ import type { DeviceHistoryEntry } from "@/lib/data/patient-detail";
 import type { CgmDevice, InsulinDeliveryDevice } from "@prisma/client";
 
 const CGM_LABELS: Record<CgmDevice, string> = {
-  DEXCOM: "Dexcom",
-  FREESTYLE_LIBRE: "FreeStyle Libre",
+  DEXCOM: "Dexcom G7 15-Day",
+  FREESTYLE_LIBRE: "FreeStyle Libre 3",
 };
 
 const PUMP_LABELS: Record<InsulinDeliveryDevice, string> = {
-  OMNIPOD: "Omnipod",
-  TANDEM: "Tandem",
-  MEDTRONIC: "Medtronic",
+  OMNIPOD: "Omnipod 5",
+  TANDEM: "Tandem t:slim X2",
+  MEDTRONIC: "Medtronic MiniMed 780G",
   MDI: "MDI",
 };
 

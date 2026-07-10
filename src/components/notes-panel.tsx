@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { DisclosureToggle } from "@/components/disclosure-toggle";
 import { useUnsavedGuardRegistration } from "@/components/unsaved-guard";
-import { NOTE_TEMPLATES } from "@/lib/constants";
+import { NOTE_TEMPLATES, RPM_COMPLETED_LABEL } from "@/lib/constants";
 import { addNote } from "@/app/actions/notes";
 import { logRpmCallTime } from "@/app/actions/monitoring";
 
@@ -46,7 +46,7 @@ export function NotesPanel({
   canManage: boolean;
 }) {
   const [showCallTimeForm, setShowCallTimeForm] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(true);
+  const [showNoteComposer, setShowNoteComposer] = useState(true);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [showKebabMenu, setShowKebabMenu] = useState(false);
 
@@ -61,8 +61,27 @@ export function NotesPanel({
   const [loggingCallTime, setLoggingCallTime] = useState(false);
   const [callTimeError, setCallTimeError] = useState<string | null>(null);
 
+  const rpmCompletedSelected = selectedTemplates.includes(RPM_COMPLETED_LABEL);
+  const rpmCompletedNeedsCallTime = rpmCompletedSelected && (!callStartTime || !callEndTime);
+
+  // Entering both phone-log times auto-checks "RPM Completed" below — a
+  // logged call is, by definition, a completed RPM session. Triggered from
+  // the time inputs' onChange handlers (not an effect) since this only
+  // needs to react to direct user edits, not to every render.
+  function maybeAutoCheckRpmCompleted(start: string, end: string) {
+    if (!start || !end || rpmCompletedSelected) return;
+    const template = NOTE_TEMPLATES.find((t) => t.label === RPM_COMPLETED_LABEL);
+    if (!template) return;
+    setSelectedTemplates((prev) => [...prev, template.label]);
+    setNotes((prev) => (prev.trim() ? `${prev.trim()} ${template.boilerplate}` : template.boilerplate));
+  }
+
   async function saveNote() {
     if (!notes.trim()) return;
+    if (rpmCompletedNeedsCallTime) {
+      setError("Enter start and end times in the phone log to complete an RPM session.");
+      throw new Error("Missing phone log times for RPM Completed");
+    }
     setSaving(true);
     setError(null);
     try {
@@ -71,6 +90,15 @@ export function NotesPanel({
         occurredAt: new Date().toISOString(),
         templateUsed: selectedTemplates.length ? selectedTemplates.join(", ") : null,
       });
+      // RPM Completed represents a real logged call — bundle the phone-log
+      // time into the same submit so the billable minutes are actually saved,
+      // not just required and discarded.
+      if (rpmCompletedSelected && callStartTime && callEndTime) {
+        await logRpmCallTime(patientId, { date: callDate, startTime: callStartTime, endTime: callEndTime });
+        setCallStartTime("");
+        setCallEndTime("");
+        setCallDate(todayDateValue());
+      }
       setNotes("");
       setSelectedTemplates([]);
     } catch (err) {
@@ -118,6 +146,11 @@ export function NotesPanel({
 
     setSelectedTemplates((prev) => [...prev, label]);
     setNotes((prev) => (prev.trim() ? `${prev.trim()} ${boilerplate}` : boilerplate));
+    // RPM Completed requires logged phone-log times — surface that form
+    // immediately rather than leaving the requirement undiscoverable.
+    if (label === RPM_COMPLETED_LABEL) {
+      setShowCallTimeForm(true);
+    }
   }
 
   const sorted = useMemo(
@@ -183,7 +216,10 @@ export function NotesPanel({
                 <input
                   type="time"
                   value={callStartTime}
-                  onChange={(e) => setCallStartTime(e.target.value)}
+                  onChange={(e) => {
+                    setCallStartTime(e.target.value);
+                    maybeAutoCheckRpmCompleted(e.target.value, callEndTime);
+                  }}
                   className="mt-0.5 block w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
                 />
               </label>
@@ -192,7 +228,10 @@ export function NotesPanel({
                 <input
                   type="time"
                   value={callEndTime}
-                  onChange={(e) => setCallEndTime(e.target.value)}
+                  onChange={(e) => {
+                    setCallEndTime(e.target.value);
+                    maybeAutoCheckRpmCompleted(callStartTime, e.target.value);
+                  }}
                   className="mt-0.5 block w-full rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-950"
                 />
               </label>
@@ -215,50 +254,54 @@ export function NotesPanel({
 
       <div className="border-t border-neutral-200 px-4 py-3 dark:border-neutral-800">
         <DisclosureToggle
-          expanded={showTemplates}
-          onClick={() => setShowTemplates((v) => !v)}
-          labelExpanded="Hide templates"
-          labelCollapsed="Templates"
+          expanded={showNoteComposer}
+          onClick={() => setShowNoteComposer((v) => !v)}
+          labelExpanded="Hide note composer"
+          labelCollapsed="Templates & Note"
           variant="plain"
         />
-        {showTemplates && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {NOTE_TEMPLATES.map((t) => (
-              <button
-                key={t.label}
-                type="button"
-                onClick={() => handleChipClick(t.label, t.boilerplate)}
-                aria-pressed={selectedTemplates.includes(t.label)}
-                className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
-                  selectedTemplates.includes(t.label)
-                    ? "border-accent-border bg-accent-subtle text-accent"
-                    : "border-neutral-300 text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
+        {showNoteComposer && (
+          <div className="mt-2 space-y-3">
+            <div className="flex flex-wrap gap-1.5">
+              {NOTE_TEMPLATES.map((t) => (
+                <button
+                  key={t.label}
+                  type="button"
+                  onClick={() => handleChipClick(t.label, t.boilerplate)}
+                  aria-pressed={selectedTemplates.includes(t.label)}
+                  className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                    selectedTemplates.includes(t.label)
+                      ? "border-accent-border bg-accent-subtle text-accent"
+                      : "border-neutral-300 text-neutral-600 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-400 dark:hover:bg-neutral-800"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={5}
+              placeholder="Write a note…"
+              className="block w-full resize-y rounded-md border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-border/40 dark:border-neutral-700 dark:bg-neutral-950"
+            />
+            {rpmCompletedNeedsCallTime && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Enter start and end times in the phone log above to complete this RPM session.
+              </p>
+            )}
+            {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+            <button
+              type="button"
+              onClick={() => void saveNote()}
+              disabled={saving || !notes.trim() || rpmCompletedNeedsCallTime}
+              className="w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-contrast hover:bg-accent-hover disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Add Note"}
+            </button>
           </div>
         )}
-      </div>
-
-      <div className="border-t border-neutral-200 px-4 py-3 dark:border-neutral-800">
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={5}
-          placeholder="Write a note…"
-          className="block w-full resize-y rounded-md border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-border/40 dark:border-neutral-700 dark:bg-neutral-950"
-        />
-        {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
-        <button
-          type="button"
-          onClick={() => void saveNote()}
-          disabled={saving || !notes.trim()}
-          className="mt-3 w-full rounded-md bg-accent px-3 py-2 text-sm font-medium text-accent-contrast hover:bg-accent-hover disabled:opacity-50"
-        >
-          {saving ? "Saving…" : "Add Note"}
-        </button>
       </div>
       </>
       )}
@@ -267,7 +310,7 @@ export function NotesPanel({
         <div className="border-t border-neutral-200 px-4 py-3 dark:border-neutral-800">
           <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm dark:border-neutral-800 dark:bg-neutral-900/50">
             <div className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-              AI summary across visits
+              AI summary across RPM sessions
             </div>
             <p className="mt-1 text-neutral-700 dark:text-neutral-300">{aiSummary}</p>
           </div>
