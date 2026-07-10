@@ -46,6 +46,45 @@ function formatDate(date: Date | null): string {
   return new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 }
 
+// Static, doesn't vary per report — describes the program category the
+// consent covers, not this period's specific billed CPT codes.
+const RPM_PROGRAM_TYPES_LABEL = "Remote Physiologic Monitoring (RPM)";
+
+// Medical-necessity language branches by diabetes type, since the clinical
+// risk profile cited (DKA/hypoglycemia for Type 1 vs. cardiovascular/
+// metabolic decompensation for Type 2) differs by diagnosis.
+function buildConsentParagraph({
+  diabetesType,
+  icd10Code,
+  state,
+  consentDate,
+}: {
+  diabetesType: "TYPE_1" | "TYPE_2";
+  icd10Code: string;
+  state: string | null;
+  consentDate: Date | null;
+}): string {
+  const stateLabel = state ?? "[state not on file]";
+  const consentDateLabel = formatDate(consentDate);
+  const necessityClause =
+    diabetesType === "TYPE_1"
+      ? `Medical necessity determined by ${icd10Code} (Type 1 diabetes mellitus), an insulin-dependent chronic ` +
+        `condition requiring continuous glycemic monitoring, which places the patient at significant risk of ` +
+        `diabetic ketoacidosis, severe hypoglycemia, and long-term microvascular/macrovascular complications ` +
+        `absent close glucose oversight.`
+      : `Medical necessity determined by ${icd10Code} (Type 2 diabetes mellitus), a chronic condition requiring ` +
+        `ongoing glycemic and metabolic monitoring, which places the patient at significant risk of acute ` +
+        `exacerbation/decompensation, cardiovascular events, and progressive microvascular/macrovascular ` +
+        `complications absent regular monitoring and timely intervention.`;
+
+  return (
+    `RPM has been initiated by the patient's healthcare provider. ${necessityClause} Provided by ${stateLabel} ` +
+    `(${RPM_PROGRAM_TYPES_LABEL}). The patient has consented to RPM services on ${consentDateLabel}, prior to ` +
+    `this encounter, acknowledging that service may be terminated at will, only one provider may deliver ` +
+    `services during a calendar month, and that cost-sharing applies.`
+  );
+}
+
 // Plain-language description of what a monitoring session actually was —
 // derived from existing fields (source + templateUsed) rather than a new
 // column, since it's fully determined by data already captured.
@@ -251,17 +290,12 @@ export async function getAuditReportData(
   const diagnosisName = getDiagnosisName(patient.primaryDiagnosisCode);
   const periodLabel = `${MONTH_NAMES[month - 1]} ${year}`;
 
-  const consentDateLabel = formatDate(patient.consentDate);
-  const dxLabel = diagnosisName ? `${patient.primaryDiagnosisCode} (${diagnosisName})` : patient.primaryDiagnosisCode;
-  const rpmConsentParagraph =
-    `This Remote Physiologic Monitoring (RPM) service is medically necessary for the ongoing management of ` +
-    `${patient.firstName} ${patient.lastName}'s diagnosis of ${dxLabel}, supporting clinical decision-making ` +
-    `through continuous physiologic data review. The patient consented to participation in this program on ` +
-    `${consentDateLabel}. The patient was informed that RPM services may be discontinued by either the patient ` +
-    `or the practice at any time, without effect on the patient's other medical care. Per CMS billing guidance, ` +
-    `only one qualified health care provider may bill RPM services for this patient in a given calendar month. ` +
-    `Standard deductible, coinsurance, and/or copayment cost-sharing applies to RPM services under the patient's ` +
-    `insurance plan.`;
+  const rpmConsentParagraph = buildConsentParagraph({
+    diabetesType: patient.diabetesType,
+    icd10Code: patient.primaryDiagnosisCode,
+    state: patient.state,
+    consentDate: patient.consentDate,
+  });
 
   const billedCodes: RpmCptCode[] = RPM_CPT_CODES.filter((code) => {
     switch (code) {
