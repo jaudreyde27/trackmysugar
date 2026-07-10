@@ -24,7 +24,7 @@ const CODE_GROUPS: Array<Array<{ code: string; info: string }>> = [
 function CodeHeader({ code, info, groupStart }: { code: string; info: string; groupStart: boolean }) {
   return (
     <th
-      className={`px-3 py-2 text-center ${groupStart ? "border-l border-neutral-200 dark:border-neutral-800" : ""}`}
+      className={`px-2 py-3 text-center ${groupStart ? "border-l border-neutral-200 dark:border-neutral-800" : ""}`}
     >
       <span className="inline-flex items-center gap-1">
         {code}
@@ -38,7 +38,7 @@ function CodeHeader({ code, info, groupStart }: { code: string; info: string; gr
 
 function CodeCell({ met, groupStart, onClick }: { met: boolean; groupStart: boolean; onClick?: () => void }) {
   return (
-    <td className={`px-3 py-2 text-center ${groupStart ? "border-l border-neutral-200 dark:border-neutral-800" : ""}`}>
+    <td className={`px-2 py-3 text-center ${groupStart ? "border-l border-neutral-200 dark:border-neutral-800" : ""}`}>
       <button
         type="button"
         onClick={onClick}
@@ -94,7 +94,7 @@ export function BillingTable({
     await setCpt99453Completed(row.patientId, next);
   }
 
-  const totalColumns = 7 + CODE_GROUPS.flat().length + 1;
+  const totalColumns = 6 + CODE_GROUPS.flat().length + 1;
 
   return (
     <div>
@@ -102,48 +102,49 @@ export function BillingTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-xs font-medium uppercase tracking-wide text-neutral-500 dark:border-neutral-800 dark:text-neutral-400">
-              <th className="px-3 py-2">Name</th>
-              <th className="px-3 py-2">DOB</th>
-              <th className="px-3 py-2">Provider</th>
-              <th className="px-3 py-2">Insurance</th>
-              <th className="px-3 py-2">Insurance Number</th>
-              <th className="px-3 py-2 text-center">Transmission Days</th>
-              <th className="px-3 py-2 text-center">RPM Time</th>
+              <th className="px-1.5 py-3 whitespace-nowrap">Name</th>
+              <th className="px-1.5 py-3 whitespace-nowrap">DOB</th>
+              <th className="px-1.5 py-3 whitespace-nowrap">Provider</th>
+              <th className="px-1.5 py-3 whitespace-nowrap">Insurance</th>
+              <th className="px-1.5 py-3 whitespace-nowrap text-center">Transmission Days</th>
+              <th className="px-1.5 py-3 whitespace-nowrap text-center">RPM Time</th>
               {CODE_GROUPS.map((group) =>
                 group.map(({ code, info }, i) => (
                   <CodeHeader key={code} code={code} info={info} groupStart={i === 0} />
                 ))
               )}
-              <th className="px-3 py-2" />
+              <th className="px-1.5 py-3 whitespace-nowrap">Audit Report</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100 dark:divide-neutral-900">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={totalColumns} className="px-3 py-6 text-center text-neutral-500 dark:text-neutral-400">
+                <td colSpan={totalColumns} className="px-2 py-6 text-center text-neutral-500 dark:text-neutral-400">
                   No billable patients this period.
                 </td>
               </tr>
             ) : (
               rows.map((row) => (
                 <tr key={row.patientId}>
-                  <td className="px-3 py-2 text-neutral-800 dark:text-neutral-200">
+                  <td className="whitespace-nowrap px-1.5 py-3 text-neutral-800 dark:text-neutral-200">
                     {row.firstName} {row.lastName}
                   </td>
-                  <td className="px-3 py-2 text-neutral-600 dark:text-neutral-400">{formatDob(row.dateOfBirth)}</td>
-                  <td className="px-3 py-2 text-neutral-600 dark:text-neutral-400">
+                  <td className="whitespace-nowrap px-1.5 py-3 text-neutral-600 dark:text-neutral-400">
+                    {formatDob(row.dateOfBirth)}
+                  </td>
+                  <td className="whitespace-nowrap px-1.5 py-3 text-neutral-600 dark:text-neutral-400">
                     {row.supervisingProviderName ?? "—"}
                   </td>
-                  <td className="px-3 py-2 text-neutral-600 dark:text-neutral-400">
-                    {row.insuranceName ?? "—"}
+                  <td className="whitespace-nowrap px-1.5 py-3 text-neutral-600 dark:text-neutral-400">
+                    <div>{row.insuranceName ?? "—"}</div>
+                    {row.insuranceMemberId && (
+                      <div className="text-xs text-neutral-400 dark:text-neutral-500">{row.insuranceMemberId}</div>
+                    )}
                   </td>
-                  <td className="px-3 py-2 text-neutral-600 dark:text-neutral-400">
-                    {row.insuranceMemberId ?? "—"}
-                  </td>
-                  <td className="px-3 py-2 text-center tabular-nums text-neutral-600 dark:text-neutral-400">
+                  <td className="px-1.5 py-3 text-center tabular-nums text-neutral-600 dark:text-neutral-400">
                     {row.eligibility.daysOfReadings}
                   </td>
-                  <td className="px-3 py-2 text-center tabular-nums text-neutral-600 dark:text-neutral-400">
+                  <td className="px-1.5 py-3 text-center tabular-nums text-neutral-600 dark:text-neutral-400">
                     {formatDuration(row.eligibility.monitoringMinutes)}
                   </td>
                   <CodeCell met={row.eligibility.code99453} groupStart onClick={() => void toggle99453(row)} />
@@ -152,12 +153,13 @@ export function BillingTable({
                   <CodeCell met={row.eligibility.code99470} groupStart />
                   <CodeCell met={row.eligibility.code99457} groupStart={false} />
                   <CodeCell met={row.eligibility.code99458} groupStart={false} />
-                  <td className="px-3 py-2 text-right">
+                  <td className="whitespace-nowrap px-1.5 py-3">
                     <a
                       href={`/api/patients/${row.patientId}/audit-report?year=${year}&month=${month}`}
-                      className="inline-block rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900"
+                      title="Download audit report"
+                      className="inline-block rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900"
                     >
-                      Audit Report
+                      Audit
                     </a>
                   </td>
                 </tr>
